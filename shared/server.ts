@@ -113,14 +113,17 @@ function text(body: Body, key: string, min: number, max: number): string {
   return value.trim();
 }
 
-function common(body: Body) {
+function common(body: Body, action: 'location' | 'application' = 'location') {
   const eventId = text(body, 'eventId', 36, 36);
   if (!UUID.test(eventId)) throw new ApiError(400, 'VALIDATION_ERROR', 'Mã sự kiện không hợp lệ.');
-  if (body.consent !== true)
-    throw new ApiError(400, 'CONSENT_REQUIRED', 'Cần đồng ý trước khi gửi thông tin.');
+  if (body[action === 'location' ? 'consent' : 'submitted'] !== true)
+    throw new ApiError(
+      400,
+      action === 'location' ? 'CONSENT_REQUIRED' : 'SUBMISSION_REQUIRED',
+      'Vui lòng xác nhận thao tác gửi thông tin.',
+    );
   return {
     eventId,
-    branchId: text(body, 'branchId', 1, 80),
     turnstileToken: text(body, 'turnstileToken', 1, 2048),
   };
 }
@@ -157,7 +160,7 @@ export function validateLocation(body: Body, available: Branch[] = branches) {
       'VALIDATION_ERROR',
       'Thông báo khu vực không nhận tọa độ hoặc dữ liệu thiết bị.',
     );
-  const base = common(body);
+  const base = { ...common(body), branchId: text(body, 'branchId', 1, 80) };
   const branch = available.find((b) => b.id === base.branchId && b.active && b.verified);
   if (!branch)
     throw new ApiError(
@@ -189,7 +192,8 @@ export function validateApplication(
     'experience',
     'skills',
     'vehicle',
-    'consent',
+    'submitted',
+    'province',
     'turnstileToken',
     'website',
   ]);
@@ -197,14 +201,31 @@ export function validateApplication(
     throw new ApiError(400, 'VALIDATION_ERROR', 'Biểu mẫu có trường dữ liệu không được hỗ trợ.');
   if (body.website !== undefined && body.website !== '')
     throw new ApiError(400, 'VALIDATION_ERROR', 'Không thể tiếp nhận biểu mẫu này.');
-  const base = common(body);
-  const branch = available.find(
-    (b) => b.id === base.branchId && b.active && b.verified && b.recruitmentEnabled,
-  );
+  const base = common(body, 'application');
   const jobId = text(body, 'jobId', 1, 80);
-  const job = openings.find((j) => j.id === jobId && j.branchId === base.branchId && j.active);
-  if (!branch || !job)
-    throw new ApiError(400, 'JOB_UNAVAILABLE', 'Vị trí này hiện không tiếp nhận hồ sơ.');
+  const job = openings.find((j) => j.id === jobId && j.active);
+  if (!job) throw new ApiError(400, 'JOB_UNAVAILABLE', 'Vị trí này hiện không tiếp nhận hồ sơ.');
+  const national = job.scope === 'national';
+  const branchId =
+    body.branchId == null || body.branchId === '' ? null : text(body, 'branchId', 1, 80);
+  const branch = branchId
+    ? available.find(
+        (b) => b.id === branchId && b.active && b.verified && (national || b.recruitmentEnabled),
+      )
+    : null;
+  if ((branchId && !branch) || (!national && (!branch || job.branchId !== branch.id))) {
+    throw new ApiError(
+      400,
+      'JOB_UNAVAILABLE',
+      'Chi nhánh hoặc vị trí này hiện không tiếp nhận hồ sơ.',
+    );
+  }
+  const province =
+    body.province === undefined && branch
+      ? branch.province
+      : normalizeProvince(text(body, 'province', 1, 80));
+  if (!province || (branch && province !== normalizeProvince(branch.province)))
+    throw new ApiError(400, 'VALIDATION_ERROR', 'Vui lòng chọn tỉnh/thành phù hợp với chi nhánh.');
   const name = text(body, 'name', 2, 100);
   const phone = text(body, 'phone', 10, 15).replace(/[ .-]/g, '');
   if (!/^(?:0|\+?84)[35789]\d{8}$/.test(phone))
@@ -229,11 +250,16 @@ export function validateApplication(
   const education = text(body, 'education', 1, 20);
   if (!['none', 'THCS', 'THPT', 'college', 'university'].includes(education))
     throw new ApiError(400, 'VALIDATION_ERROR', 'Trình độ học vấn không hợp lệ.');
-  if (body.vehicle !== job.vehicle)
+  if (
+    !['motorcycle', 'car'].includes(String(body.vehicle)) ||
+    (job.vehicle !== 'any' && body.vehicle !== job.vehicle)
+  )
     throw new ApiError(400, 'VALIDATION_ERROR', 'Nhóm xe không khớp vị trí ứng tuyển.');
   return {
     ...base,
     branch,
+    branchId: branch?.id || null,
+    province,
     job,
     name,
     phone,
@@ -470,29 +496,4 @@ export function serverTime(): string {
       timeStyle: 'medium',
     }).format(new Date()) + ' GMT+7'
   );
-}
-
-export function describeClient(request: Request): string {
-  const ua = request.headers.get('User-Agent') || '';
-  const browser = /Edg\//.test(ua)
-    ? 'Edge'
-    : /Firefox\//.test(ua)
-      ? 'Firefox'
-      : /Chrome\//.test(ua)
-        ? 'Chrome'
-        : /Safari\//.test(ua)
-          ? 'Safari'
-          : 'Khác';
-  const os = /Android/.test(ua)
-    ? 'Android'
-    : /iPhone|iPad/.test(ua)
-      ? 'iOS'
-      : /Windows/.test(ua)
-        ? 'Windows'
-        : /Macintosh/.test(ua)
-          ? 'macOS'
-          : /Linux/.test(ua)
-            ? 'Linux'
-            : 'Khác';
-  return `${browser} / ${os} / ${/Mobile|Android|iPhone|iPad/.test(ua) ? 'Di động' : 'Máy tính'}`;
 }

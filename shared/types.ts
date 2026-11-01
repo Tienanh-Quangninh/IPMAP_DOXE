@@ -16,11 +16,12 @@ export interface Branch {
 
 export interface Job {
   id: string;
-  branchId: string;
+  branchId: string | null;
+  scope?: 'national' | 'branch';
   title: string;
   salary: string;
   benefits: string[];
-  vehicle: 'motorcycle' | 'car';
+  vehicle: 'motorcycle' | 'car' | 'any';
   active: boolean;
 }
 

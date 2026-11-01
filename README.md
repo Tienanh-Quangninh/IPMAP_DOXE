@@ -4,7 +4,7 @@ Landing page tiếng Việt cho xe độ, phụ tùng và tuyển dụng theo kh
 
 Mã nguồn đã lưu trên GitHub. Theo yêu cầu chủ dự án, project Cloudflare đã được xóa; bạn sẽ tự kết nối repository vào Cloudflare Pages sau.
 
-Hiện chưa mở tiếp nhận hồ sơ/thông báo Telegram: còn cần secrets, D1 và dữ liệu chi nhánh/tuyển dụng thật. Không dùng dữ liệu cơ sở giả để mở form.
+Đã mở hai vị trí tiếp nhận toàn quốc theo yêu cầu: hỗ trợ chăm sóc khách hàng và kỹ thuật xe. Ứng viên chọn tỉnh/thành mong muốn; không bắt buộc có cơ sở đã cấu hình. Để gửi thực tế cần secrets Turnstile/Telegram, D1 binding `EVENT_STORE` và schema.
 
 ## Chạy tại máy
 
@@ -33,13 +33,13 @@ npm run pages:dev
 - Danh mục 34 tỉnh/thành và tên địa phương cũ. Tự yêu cầu quyền GPS ngay khi tải trang, cập nhật vị trí/chi nhánh ở header; IP gợi ý khu vực ước lượng trong lúc chờ. Nếu bị từ chối hoặc không xác định được, vẫn chọn thủ công được. Tọa độ chỉ đối chiếu trên trình duyệt, không gửi đi.
 - Đồng ý chia sẻ khu vực tách khỏi đơn ứng tuyển. Không gửi tọa độ GPS hay IP trong sự kiện chọn khu vực.
 - Popup chỉ hiển thị nếu chi nhánh đã xác minh có việc đang tuyển; đóng popup sẽ không tự bật lại trong cùng phiên.
-- Form ứng tuyển kiểm tra đầu vào, thông báo dữ liệu audit và checkbox đồng ý, Turnstile ở frontend/backend.
+- Form ứng tuyển kiểm tra đầu vào, chọn tỉnh/thành và vị trí. Nhấn gửi đơn là thao tác gửi hồ sơ; đã bỏ checkbox/đoạn xác nhận dài theo yêu cầu. Không gửi IP hoặc thông tin trình duyệt trong hồ sơ Telegram. Turnstile ở frontend/backend.
 - 5 API và D1 chống gửi trùng/giới hạn tần suất. Telegram lỗi không hiển thị thành công. Timeout chưa rõ kết quả không tự gửi lại.
 - Điều hướng bàn phím, focus trap hộp thoại, reduced motion, quyền riêng tư và xóa khu vực đã lưu.
 
 ## Trạng thái nội dung
 
-**Đây là phiên bản giới thiệu, chưa mở bán hoặc nhận hồ sơ.** Tên Racing Garage là tên tạm theo bản kế hoạch. `src/data/branches.json` và `jobs.json` cố ý để `[]`: chưa có dữ liệu cơ sở/tuyển dụng thật được cung cấp. Không tự tạo địa chỉ, hotline, mức lương hay tin tuyển dụng. Sản phẩm và ảnh đều ghi rõ minh họa/concept, chưa có giá.
+**Catalog chưa mở bán.** Tên Racing Garage là tên tạm theo bản kế hoạch. `branches.json` vẫn rỗng chờ địa chỉ/hotline thực tế. `jobs.json` có hai vị trí toàn quốc do chủ dự án yêu cầu, scope `national`, không gắn một địa chỉ chi nhánh giả. Lương hiển thị trao đổi khi phỏng vấn. Sản phẩm và ảnh ghi rõ minh họa/concept, chưa có giá.
 
 `PROJECT-BRIEF.vi.txt` là bản kế hoạch gốc đã gửi. `PLAN.md` ghi phạm vi thực hiện. Nguồn ảnh và quyền sử dụng nằm trong `src/data/assets-manifest.json`; ảnh AI đã tối ưu WebP và lưu tại repository, không hotlink Google Images.
 
@@ -80,7 +80,7 @@ npx wrangler d1 create racing-garage-events
 npx wrangler d1 execute racing-garage-events --remote --file=shared/schema.sql
 ```
 
-6. Thêm chi nhánh đã xác minh và việc đang tuyển theo kiểu dữ liệu tại `shared/types.ts`. `province` dùng tên trong `src/data/provinces.json`; khai báo tọa độ cửa hàng, địa chỉ, hotline và bản đồ thật. Xác minh thông tin doanh nghiệp, đầu mối dữ liệu, chính sách lưu trữ/xóa hồ sơ và Telegram trước khi mở form.
+6. Khi có địa chỉ thật, bổ sung chi nhánh theo kiểu dữ liệu tại `shared/types.ts`. Hai vị trí toàn quốc có thể tiếp nhận theo tỉnh/thành ngay khi backend đủ cấu hình. `province` dùng tên trong `src/data/provinces.json`; khai báo tọa độ cửa hàng, địa chỉ, hotline và bản đồ thật. Xác minh thông tin doanh nghiệp, đầu mối dữ liệu, chính sách lưu trữ/xóa hồ sơ và Telegram trước khi mở form.
 7. Kiểm tra cả hai luồng trên preview với Telegram nhóm thử nghiệm, sau đó mới bật production. Không dùng secret thử nghiệm ở production.
 
 Các POST trả lỗi nếu thiếu binding/secrets. Dữ liệu chi nhánh, sản phẩm và tuyển dụng vẫn lưu JSON. D1 chỉ lưu metadata chống trùng và giới hạn tần suất để xử lý đúng các yêu cầu đồng thời. Không có thông báo Telegram thực tế nào được gửi trong quá trình kiểm thử tự động. Chi tiết hợp đồng API, thời hạn dữ liệu và xử lý trạng thái chưa rõ nằm trong [tài liệu backend](shared/README.md).
@@ -103,3 +103,15 @@ Các POST trả lỗi nếu thiếu binding/secrets. Dữ liệu chi nhánh, s�
 ## Giới hạn còn lại
 
 Chưa kết nối tài khoản Cloudflare, domain, secrets hoặc doanh nghiệp thật. Catalog chưa phải cửa hàng có giỏ hàng/thanh toán. So sánh ảnh trước/sau và thông số build thật cần ảnh và dữ liệu được xác minh. Không thể đảm bảo giao dịch nguyên tử giữa D1 và Telegram; kết quả chưa rõ cần đối soát theo mã sự kiện. Cơ chế chống lặp hoạt động khi ID sự kiện còn được lưu; giữ nguyên ID khi thử lại cùng dữ liệu trong phiên trình duyệt, không lưu nội dung hồ sơ vào web storage.
+
+## Chẩn đoán gửi Telegram
+
+Kiểm tra ngày 01/11/2026: production đã có tên các biến Telegram/Turnstile nhưng **chưa có D1 binding `EVENT_STORE`**. Vì vậy backend chưa thể gửi. Secret đã lưu không chứng minh token hoặc chat ID hợp lệ; chưa gửi tin kiểm thử thật.
+
+1. Cloudflare → Storage & Databases → D1 → tạo database `racing-garage-events`.
+2. Mở SQL Console, chạy nội dung `shared/schema.sql` để tạo bảng `events` và `rate_limits`.
+3. Pages `ipmap-doxe` → Settings → Bindings → Add → D1 database. Variable name: **`EVENT_STORE`**, chọn database vừa tạo.
+4. Redeploy bản mới nhất. Khi đó form hai vị trí toàn quốc sẽ gửi hồ sơ theo tỉnh/thành; không cần tự tạo địa chỉ chi nhánh để thử.
+5. Nếu còn lỗi, kiểm tra hostname Turnstile đúng domain, site key/secret cùng widget và bot có quyền nhắn trong nhóm Telegram. Không dùng token/chat ID của nhóm khác để thử.
+
+Các kiểm thử tự động dùng Telegram giả lập, không gửi tin ra nhóm thật. IP chỉ dùng phía backend phục vụ Turnstile/giới hạn tần suất dưới dạng băm cho D1; không đưa IP hoặc thông tin trình duyệt vào hồ sơ Telegram.

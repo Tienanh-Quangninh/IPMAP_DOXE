@@ -1,1 +1,22 @@
-[]
+[
+  {
+    "id": "customer-support",
+    "branchId": null,
+    "scope": "national",
+    "title": "Hỗ trợ chăm sóc khách hàng",
+    "salary": "Trao đổi khi phỏng vấn",
+    "benefits": [],
+    "vehicle": "any",
+    "active": true
+  },
+  {
+    "id": "vehicle-technician",
+    "branchId": null,
+    "scope": "national",
+    "title": "Kỹ thuật xe",
+    "salary": "Trao đổi khi phỏng vấn",
+    "benefits": [],
+    "vehicle": "any",
+    "active": true
+  }
+]

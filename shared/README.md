@@ -8,9 +8,9 @@ Tạo D1 database và bind với tên `EVENT_STORE`, thực thi `shared/schema.s
 
 Cấu hình production/preview qua Cloudflare Pages Dashboard. Repository không có `wrangler.toml` để Dashboard cho phép quản lý biến Text và bindings. Khi chạy cục bộ, `.dev.vars` vẫn dùng được; để gắn D1 local, dùng `wrangler pages dev dist --d1 EVENT_STORE` và áp dụng schema cho database local trước khi thử gửi form.
 
-POST yêu cầu JSON cùng Origin với website, UUID v4 `eventId`, `consent: true`, Turnstile token. Widget Turnstile cần `action: location` cho chia sẻ khu vực và `action: apply` cho ứng tuyển. Backend kiểm tra hostname bằng hostname URL request. Cấu hình widget cho domain production/preview thực tế. Không dùng test secrets khi production.
+POST yêu cầu JSON cùng Origin với website, UUID v4 `eventId`, Turnstile token. Chia sẻ khu vực yêu cầu `consent: true`; ứng tuyển yêu cầu `submitted: true` từ thao tác gửi đơn. Widget Turnstile cần `action: location` cho chia sẻ khu vực và `action: apply` cho ứng tuyển. Backend kiểm tra hostname bằng hostname URL request. Cấu hình widget cho domain production/preview thực tế. Không dùng test secrets khi production.
 
-`branches.json` và `jobs.json` cố ý rỗng. Chỉ thêm cơ sở thực, bật `active` và `verified` khi đã xác minh; chỉ bật `recruitmentEnabled` và thêm job `active` khi có tuyển dụng thật. GET jobs lọc đúng chi nhánh, POST apply kiểm tra lại phía server.
+`branches.json` rỗng chờ cơ sở thật. `jobs.json` có hai vị trí toàn quốc do chủ dự án yêu cầu: hỗ trợ chăm sóc khách hàng, kỹ thuật xe. Job `scope: national`, `branchId: null` nhận theo tỉnh/thành mà không bắt buộc chi nhánh. Job gắn cơ sở vẫn yêu cầu cơ sở đã xác minh và bật tuyển dụng. POST kiểm tra lại phía server.
 
 ## Hợp đồng API
 
@@ -18,9 +18,9 @@ POST yêu cầu JSON cùng Origin với website, UUID v4 `eventId`, `consent: tr
 - GET `/api/jobs?branchId=…` → `{jobs: Job[]}`.
 - GET `/api/branch-suggestion` → `{province: string | null, source: "ip"}`; chỉ đọc `request.cf` để gợi ý, không lưu/gửi Telegram.
 - POST `/api/location-consent`: `{eventId, branchId, province, source: "gps" | "manual", consent: true, turnstileToken}`. Không chấp nhận tọa độ hoặc dữ liệu thiết bị. Chỉ gửi khu vực và chi nhánh.
-- POST `/api/apply`: `{eventId, branchId, jobId, name, birthYear: number, phone, education, experience: number, skills, vehicle, consent: true, turnstileToken, website: ""}`. `education`: `none`, `THCS`, `THPT`, `college`, `university`. `vehicle`: `motorcycle` hoặc `car`, khớp job.
+- POST `/api/apply`: `{eventId, branchId: string | null, province, jobId, name, birthYear: number, phone, education, experience: number, skills, vehicle, submitted: true, turnstileToken, website: ""}`. `education`: `none`, `THCS`, `THPT`, `college`, `university`. `vehicle`: `motorcycle` hoặc `car`, khớp job.
 
-Thành công `{ok: true, eventId}` chỉ khi Telegram xác nhận nhận. Lỗi `{error, message}`, mã HTTP 400/403/409/413/415/429/502/503. Chỉ IP do Cloudflare đưa vào header được dùng giới hạn tần suất. Ứng tuyển gửi IP này và nhãn browser/OS/thiết bị tổng quát sang Telegram sau đồng ý; không lấy fingerprint, cookie hoặc UA thô. Frontend phải thông báo nội dung tiếp nhận này trước checkbox đồng ý.
+Thành công `{ok: true, eventId}` chỉ khi Telegram xác nhận nhận. Lỗi `{error, message}`, mã HTTP 400/403/409/413/415/429/502/503. Chỉ IP do Cloudflare đưa vào header được dùng giới hạn tần suất. Không gửi IP, browser/OS/thiết bị hoặc GPS trong hồ sơ Telegram. Đã bỏ checkbox và đoạn xác nhận dài theo yêu cầu; cờ `submitted` xác nhận hành động gửi đơn, không dùng làm đồng ý theo dõi thiết bị. Không lấy fingerprint, cookie hoặc UA thô.
 
 ## Chống trùng, giới hạn tần suất và khôi phục
 

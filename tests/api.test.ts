@@ -15,6 +15,7 @@ import type { Branch, D1Result, D1Statement, Env, EventDatabase, Job } from '../
 import { onRequest as getBranches } from '../functions/api/branches';
 import { onRequest as suggestion } from '../functions/api/branch-suggestion';
 import { branchGoogleMaps, googleMapsSearch } from '../shared/maps';
+import { onRequest as applyRoute } from '../functions/api/apply';
 
 test('Google Maps links encode region queries and use public shop coordinates or address', () => {
   const area = new URL(googleMapsSearch('Ninh Bình & Nam Định, Việt Nam'));
@@ -71,7 +72,7 @@ const valid = () => ({
   experience: 3,
   skills: 'Sửa xe máy',
   vehicle: 'motorcycle',
-  consent: true,
+  submitted: true,
   turnstileToken: 'mock-token',
   website: '',
 });
@@ -218,7 +219,7 @@ test('application validates real openings, age, phone, education, skills and hon
     { education: 'anything' },
     { website: 'spam' },
     { skills: '' },
-    { consent: false },
+    { submitted: false },
     { vehicle: 'car' },
   ]) {
     assert.throws(() => validateApplication({ ...valid(), ...patch }, [branch], [job]), ApiError);
@@ -352,4 +353,24 @@ test('Turnstile rejects another hostname before any event is claimed', async (t)
     (error: unknown) => error instanceof ApiError && error.code === 'TURNSTILE_INVALID',
   );
   assert.equal(calls(), 1);
+});
+
+test('national application accepts a selected province without a physical branch and excludes diagnostic data from Telegram', async (t) => {
+  let message = '';
+  t.mock.method(globalThis, 'fetch', async (url: string | URL | Request, options?: RequestInit) => {
+    if (String(url).includes('siteverify'))
+      return Response.json({ success: true, hostname: 'garage.example', action: 'apply' });
+    message = JSON.parse(String(options?.body)).text;
+    return Response.json({ ok: true });
+  });
+  const body = { ...valid(), branchId: null, jobId: 'customer-support', province: 'Nam Định' };
+  const response = await applyRoute({ request: request(body), env: env() });
+  assert.equal(response.status, 200);
+  assert.match(message, /Hỗ trợ chăm sóc khách hàng/);
+  assert.match(message, /Ninh Bình/);
+  assert.match(message, /https:\/\/www.google.com\/maps\/search/);
+  assert.doesNotMatch(message, /192\.0\.2\.1|IP:|Thiết bị:|Trình duyệt:/);
+  assert.throws(() => validateApplication({ ...body, province: 'Unknown' }), ApiError);
+  assert.throws(() => validateApplication({ ...body, branchId: 'invented-branch' }), ApiError);
+  assert.throws(() => validateApplication({ ...body, submitted: false }), ApiError);
 });

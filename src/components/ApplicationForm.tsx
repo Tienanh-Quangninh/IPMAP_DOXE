@@ -5,15 +5,20 @@ import Turnstile from './Turnstile';
 import type { Branch, Job } from '../types';
 import { api, ApiError } from '../services/api';
 import { eventIdFor } from '../services/events';
+import provinces from '../data/provinces.json';
 export default function ApplicationForm({
   branch,
   job,
+  initialProvince = '',
   onClose,
 }: {
   branch: Branch | null;
   job: Job | null;
+  initialProvince?: string;
   onClose: () => void;
 }) {
+  const [province, setProvince] = useState(branch?.province || initialProvince);
+  const canApply = !!job && (job.scope === 'national' || !!branch);
   const [token, setToken] = useState(''),
     [busy, setBusy] = useState(false),
     [error, setError] = useState(''),
@@ -23,12 +28,13 @@ export default function ApplicationForm({
     [uncertain, setUncertain] = useState(false);
   async function submit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    if (!branch || !job || !token || uncertain) return;
+    if (!canApply || !job || !province || !token || uncertain) return;
     setBusy(true);
     setError('');
     const d = new FormData(e.currentTarget);
     const payload = {
-      branchId: branch.id,
+      branchId: branch?.id || null,
+      province,
       jobId: job.id,
       name: d.get('name'),
       birthYear: Number(d.get('birthYear')),
@@ -36,8 +42,8 @@ export default function ApplicationForm({
       education: d.get('education'),
       experience: Number(d.get('experience')),
       skills: d.get('skills'),
-      vehicle: job.vehicle,
-      consent: d.get('consent') === 'on',
+      vehicle: job.vehicle === 'any' ? d.get('vehicle') : job.vehicle,
+      submitted: true,
       website: d.get('website'),
     };
     let id = '';
@@ -77,11 +83,29 @@ export default function ApplicationForm({
             ĐỘI NGŨ CỦA CHÚNG TÔI.
           </h2>
           <p className="muted">
-            {job && branch
-              ? `${job.title} · ${branch.name}`
+            {job && canApply
+              ? `${job.title} · ${branch?.name || 'Tiếp nhận toàn quốc'}`
               : 'Xem trước biểu mẫu. Chưa có vị trí tuyển dụng được xác minh, hiện chưa tiếp nhận hồ sơ.'}
           </p>
           <form onSubmit={submit}>
+            <label className="field">
+              Tỉnh / thành phố mong muốn *
+              <select
+                name="province"
+                value={province}
+                required
+                disabled={!!branch}
+                onChange={(e) => setProvince(e.target.value)}
+              >
+                <option value="">Chọn tỉnh / thành phố</option>
+                {provinces.map((p) => (
+                  <option key={p.name} value={p.name}>
+                    {p.name}
+                    {p.aliases.length ? ` (${p.aliases.join(', ')})` : ''}
+                  </option>
+                ))}
+              </select>
+            </label>
             <div className="form-grid">
               <label className="field">
                 Họ và tên *
@@ -141,7 +165,11 @@ export default function ApplicationForm({
               </label>
               <label className="field">
                 Nhóm xe chuyên môn
-                <select name="vehicle" disabled={!!job} defaultValue={job?.vehicle || 'motorcycle'}>
+                <select
+                  name="vehicle"
+                  disabled={!!job && job.vehicle !== 'any'}
+                  defaultValue={job?.vehicle === 'car' ? 'car' : 'motorcycle'}
+                >
                   <option value="motorcycle">Xe máy</option>
                   <option value="car">Ô tô</option>
                 </select>
@@ -164,15 +192,7 @@ export default function ApplicationForm({
                 <input name="website" tabIndex={-1} autoComplete="off" />
               </label>
             </div>
-            <label className="checkbox">
-              <input name="consent" type="checkbox" required />
-              <span>
-                Tôi đồng ý gửi hồ sơ đến bộ phận tuyển dụng qua Telegram. Hồ sơ kèm thời gian tiếp
-                nhận, IP và thông tin trình duyệt từ máy chủ để kiểm tra và chống spam. Không gửi vị
-                trí GPS.
-              </span>
-            </label>
-            {job && branch && <Turnstile action="apply" onToken={setToken} resetKey={reset} />}
+            {canApply && <Turnstile action="apply" onToken={setToken} resetKey={reset} />}
             <p className="micro">
               Không gửi giấy tờ tùy thân hoặc thông tin tài chính qua biểu mẫu này.
             </p>
@@ -183,7 +203,7 @@ export default function ApplicationForm({
             )}
             <button
               className="button full"
-              disabled={!branch || !job || !token || busy || uncertain}
+              disabled={!canApply || !province || !token || busy || uncertain}
             >
               {busy
                 ? 'Đang gửi hồ sơ…'

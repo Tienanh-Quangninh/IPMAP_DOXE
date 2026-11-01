@@ -26,6 +26,7 @@ import Modal from './components/Modal';
 import PartArt from './components/PartArt';
 import productsData from './data/products.json';
 import branchData from './data/branches.json';
+import jobsData from './data/jobs.json';
 import type { Branch, Job, Product } from './types';
 import { api, nearestBranch } from './services/api';
 import { requestBrowserLocation } from './services/location';
@@ -151,18 +152,19 @@ export default function App() {
   useEffect(() => {
     let active = true;
     setJobs([]);
-    if (branch?.recruitmentEnabled)
-      api<{ jobs: Job[] }>(`jobs?branchId=${encodeURIComponent(branch.id)}`)
-        .then((d) => {
-          if (active) setJobs(d.jobs);
-        })
-        .catch(() => {});
+    api<{ jobs: Job[] }>(branch ? `jobs?branchId=${encodeURIComponent(branch.id)}` : 'jobs')
+      .then((d) => {
+        if (active) setJobs(d.jobs);
+      })
+      .catch(() => {
+        if (active) setJobs((jobsData as Job[]).filter((j) => j.active && j.scope === 'national'));
+      });
     return () => {
       active = false;
     };
   }, [branch?.id, branch?.recruitmentEnabled]);
   useEffect(() => {
-    if (!jobs.length) return;
+    if (!jobs.length || !selection.province || formOpen || locationOpen) return;
     let dismissed = false;
     try {
       dismissed = !!sessionStorage.getItem('rg-recruit-dismissed');
@@ -170,7 +172,7 @@ export default function App() {
     if (dismissed) return;
     const timer = setTimeout(() => setRecruitOpen(true), 6500);
     return () => clearTimeout(timer);
-  }, [jobs]);
+  }, [jobs, selection.province, formOpen, locationOpen]);
   function selectRegion(province: string, b: Branch | null) {
     manualRegionVersion.current++;
     setLocationStatus('manual');
@@ -183,7 +185,7 @@ export default function App() {
   function openApply(j: Job | null = null) {
     setJob(j);
     setFormOpen(true);
-    setRecruitOpen(false);
+    closeRecruit();
   }
   const shownProducts = products.filter(
     (p) =>
@@ -766,14 +768,14 @@ export default function App() {
               <br />
               Chương tiếp theo của bạn có thể bắt đầu từ đây.
             </p>
-            {jobs.length && branch ? (
+            {jobs.length > 0 ? (
               <div className="jobs-list">
                 {jobs.map((j) => (
                   <button key={j.id} className="job-button" onClick={() => openApply(j)}>
                     <span>
                       {j.title}
                       <small>
-                        {branch.name} · {j.salary}
+                        {branch?.name || selection.province || 'Toàn quốc'} · {j.salary}
                       </small>
                     </span>
                     <ArrowUpRight />
@@ -832,7 +834,7 @@ export default function App() {
               },
               {
                 q: 'Tôi có thể ứng tuyển tại đâu?',
-                a: 'Khi một chi nhánh đã xác minh có vị trí tuyển dụng đang mở, thông tin công việc và biểu mẫu tiếp nhận sẽ hiển thị theo khu vực bạn chọn. Hiện chưa có tin tuyển dụng được công bố.',
+                a: 'Đang tiếp nhận ứng tuyển toàn quốc cho vị trí hỗ trợ chăm sóc khách hàng và kỹ thuật xe. Chọn vị trí và tỉnh/thành mong muốn trong biểu mẫu để bộ phận tuyển dụng tiếp nhận.',
               },
             ].map((f, i) => (
               <div className="faq-item" key={f.q}>
@@ -923,7 +925,14 @@ export default function App() {
           onClose={closeLocation}
         />
       )}
-      {formOpen && <ApplicationForm branch={branch} job={job} onClose={closeForm} />}
+      {formOpen && (
+        <ApplicationForm
+          branch={branch}
+          job={job}
+          initialProvince={selection.province}
+          onClose={closeForm}
+        />
+      )}
       {product && (
         <Modal title="Chi tiết phụ tùng" onClose={closeProduct}>
           <div className="modal-product">
@@ -976,9 +985,9 @@ export default function App() {
           </p>
         </Modal>
       )}
-      {recruitOpen && jobs.length > 0 && branch && (
+      {recruitOpen && jobs.length > 0 && selection.province && (
         <Modal title="Cơ hội nghề nghiệp" onClose={closeRecruit}>
-          <p className="eyebrow orange">JOIN THE CREW / {branch.name}</p>
+          <p className="eyebrow orange">JOIN THE CREW / {branch?.name || selection.province}</p>
           <h2>
             ĐỘI NGŨ ĐANG
             <br />
@@ -1019,20 +1028,16 @@ export default function App() {
               gian khi bạn đồng ý riêng. Việc chọn khu vực không bắt buộc phải chia sẻ.
             </p>
             <p>
-              <strong>Ứng tuyển:</strong> hồ sơ, thời gian, IP và thông tin trình duyệt được gửi cho
-              bộ phận tuyển dụng qua Telegram khi bạn tích đồng ý và gửi form. Mã sự kiện, trạng
-              thái và dữ liệu băm phục vụ chống lặp được lưu trong D1; lịch sử Telegram cần được
-              doanh nghiệp quản lý và xóa theo chính sách công bố trước vận hành.
+              <strong>Ứng tuyển:</strong> hồ sơ và thời gian được gửi đến bộ phận tuyển dụng qua
+              Telegram khi bạn nhấn gửi đơn. Không gửi IP, thông tin trình duyệt hoặc tọa độ GPS
+              trong hồ sơ. Mã sự kiện, trạng thái và dữ liệu băm phục vụ chống lặp được lưu trong
+              D1.
             </p>
             <p>
               <strong>Chống spam:</strong> khi mở biểu mẫu gửi, Cloudflare Turnstile kiểm tra yêu
               cầu. Không thu thập dấu vân tay thiết bị hoặc cookie đăng nhập.
             </p>
-            <p>
-              Website hiện chưa có thông tin doanh nghiệp và đầu mối xử lý dữ liệu chính thức; chưa
-              mở tiếp nhận hồ sơ. Thông tin liên hệ và chính sách lưu trữ sẽ được bổ sung trước khi
-              vận hành.
-            </p>
+            <p>Thông tin liên hệ doanh nghiệp và đầu mối xử lý dữ liệu đang được cập nhật.</p>
           </div>
           <button
             className="button button-outline full"

@@ -18,3 +18,10 @@ Production cần tên thương hiệu chính thức, danh sách cơ sở đã x�
 - Build thành công, 12 kiểm thử backend đạt. Kiểm tra Chrome trên 360/390/768/1440px đạt; hai luồng gửi đã thử với API/provider giả lập, không gửi Telegram thật.
 - Project Cloudflare đã được xóa theo yêu cầu; giữ mã trên GitHub để chủ dự án tự cấu hình Pages. Không tự triển khai lại.
 - Chưa mở tiếp nhận hồ sơ/Telegram vì còn thiếu secrets, D1 và dữ liệu doanh nghiệp thật.
+
+## Cập nhật tuyển dụng
+
+- Tiếp nhận toàn quốc: hỗ trợ chăm sóc khách hàng và kỹ thuật xe, theo yêu cầu chủ dự án.
+- Form nhận tỉnh/thành mà không cần tạo chi nhánh giả; chi nhánh được gắn khi có dữ liệu thực.
+- Bỏ đoạn xác nhận/checkbox ứng tuyển; hồ sơ Telegram không kèm IP hoặc dữ liệu trình duyệt. Vẫn giữ thao tác gửi đơn chủ động, Turnstile, chống trùng và giới hạn tần suất.
+- Chẩn đoán production: chưa có D1 binding EVENT_STORE. Chủ dự án cấu hình qua Dashboard theo README; không tự thay đổi Cloudflare hoặc gửi tin thử thật.

@@ -259,7 +259,11 @@ try {
   await flow.getByLabel('Số điện thoại').fill('0912345678');
   await flow.getByLabel('Số năm kinh nghiệm').fill('3');
   await flow.getByLabel('Kỹ năng chuyên môn').fill('Kiểm thử tư vấn lắp đặt phụ tùng');
-  await flow.getByRole('checkbox').check();
+  assert.equal(
+    await flow.getByRole('checkbox').count(),
+    0,
+    'Application should not require the removed checkbox',
+  );
   await flow.getByRole('button', { name: 'Gửi đơn ứng tuyển' }).click();
   await flow.getByRole('alert').waitFor();
   assert.equal(
@@ -275,8 +279,70 @@ try {
     events[2].payload.eventId,
     'Retry must preserve event ID',
   );
-  assert.equal(events[1].payload.consent, true);
+  assert.equal(events[1].payload.submitted, true);
   assert.deepEqual(errors, []);
+  const national = await browser.newContext({ viewport: { width: 390, height: 844 } });
+  await national.addInitScript(() =>
+    Object.defineProperty(navigator, 'geolocation', {
+      value: {
+        getCurrentPosition(_resolve, reject) {
+          reject({ code: 1 });
+        },
+      },
+    }),
+  );
+  const regional = await national.newPage();
+  const nationalJob = {
+    id: 'customer-support',
+    branchId: null,
+    scope: 'national',
+    title: 'Hỗ trợ chăm sóc khách hàng',
+    salary: 'Trao đổi khi phỏng vấn',
+    benefits: [],
+    vehicle: 'any',
+    active: true,
+  };
+  let regionalSubmission;
+  await regional.route(
+    'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit',
+    (route) =>
+      route.fulfill({
+        contentType: 'application/javascript',
+        body: "window.turnstile={render(el,opts){queueMicrotask(()=>opts.callback('fixture-token'));return 'mock';},remove(){}};",
+      }),
+  );
+  await regional.route('**/api/**', (route) => {
+    if (route.request().method() === 'POST') {
+      regionalSubmission = route.request().postDataJSON();
+      return route.fulfill({ json: { ok: true, eventId: regionalSubmission.eventId } });
+    }
+    const path = new URL(route.request().url()).pathname;
+    return route.fulfill({
+      json: path.endsWith('/branches')
+        ? { branches: [] }
+        : path.endsWith('/jobs')
+          ? { jobs: [nationalJob] }
+          : { province: null, source: 'ip' },
+    });
+  });
+  await regional.goto(url);
+  await regional.locator('.job-button').click();
+  await regional.getByLabel('Tỉnh / thành phố mong muốn').selectOption('Ninh Bình');
+  await regional.getByLabel('Họ và tên').fill('Ứng viên toàn quốc');
+  await regional.getByLabel('Năm sinh').fill('2000');
+  await regional.getByLabel('Số điện thoại').fill('0912345678');
+  await regional.getByLabel('Kỹ năng chuyên môn').fill('Hỗ trợ và chăm sóc khách hàng');
+  await regional.getByRole('button', { name: 'Gửi đơn ứng tuyển' }).click();
+  await regional.getByText('ĐÃ TIẾP NHẬN HỒ SƠ.', { exact: true }).waitFor();
+  assert.equal(regionalSubmission.branchId, null);
+  assert.equal(regionalSubmission.province, 'Ninh Bình');
+  assert.equal(regionalSubmission.jobId, 'customer-support');
+  assert.equal(regionalSubmission.submitted, true);
+  assert.equal('consent' in regionalSubmission, false);
+  await national.close();
+  console.log(
+    'Nationwide intake passed: no physical branch required, province selected, submission works without consent checkbox.',
+  );
   await configured.close();
   console.log(
     'Configured flows passed: granted GPS selects branch automatically in header before click, separate consent event, recruitment popup only once, application validation, provider failure, retry with same ID, confirmed success. No external provider calls.',
