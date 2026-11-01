@@ -16,4 +16,5 @@ Production cần tên thương hiệu chính thức, danh sách cơ sở đã x�
 - Đã dựng giao diện và các tương tác chính, ảnh concept WebP, dữ liệu JSON và năm API.
 - D1 chỉ dùng metadata chống trùng/giới hạn tần suất để bảo đảm xử lý yêu cầu đồng thời; dữ liệu kinh doanh vẫn lưu JSON.
 - Build thành công, 12 kiểm thử backend đạt. Kiểm tra Chrome trên 360/390/768/1440px đạt; hai luồng gửi đã thử với API/provider giả lập, không gửi Telegram thật.
-- Chưa triển khai Cloudflare hoặc mở tiếp nhận vì chưa có tài khoản/secrets và dữ liệu doanh nghiệp thật.
+- Đã xuất bản trên Cloudflare Pages tại https://ipmap-doxe.pages.dev ngày 01/11/2026; liên kết GitHub nhánh main để tự triển khai. HTTP 200, GET branches/jobs và Chrome desktop/mobile đã kiểm tra trên production.
+- Chưa mở tiếp nhận hồ sơ/Telegram vì còn thiếu secrets, D1 và dữ liệu doanh nghiệp thật.

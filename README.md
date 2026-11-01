@@ -2,6 +2,10 @@
 
 Landing page tiếng Việt cho xe độ, phụ tùng và tuyển dụng theo khu vực. React + Vite + TypeScript, Cloudflare Pages Functions, Telegram, Turnstile.
 
+Website: **https://ipmap-doxe.pages.dev** — đã xuất bản trên Cloudflare Pages ngày 01/11/2026. Project `ipmap-doxe` liên kết GitHub repository này, tự build và triển khai nhánh `main` bằng Node 24. API công khai và giao diện đã được kiểm tra trực tiếp trên production.
+
+Hiện chưa mở tiếp nhận hồ sơ/thông báo Telegram: còn cần secrets, D1 và dữ liệu chi nhánh/tuyển dụng thật. Không dùng dữ liệu cơ sở giả để mở form.
+
 ## Chạy tại máy
 
 Yêu cầu Node.js 22.13+ (kiểm thử API dùng `node:sqlite`; khuyên dùng Node 24 LTS).
