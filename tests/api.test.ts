@@ -14,6 +14,27 @@ import {
 import type { Branch, D1Result, D1Statement, Env, EventDatabase, Job } from '../shared/types';
 import { onRequest as getBranches } from '../functions/api/branches';
 import { onRequest as suggestion } from '../functions/api/branch-suggestion';
+import { branchGoogleMaps, googleMapsSearch } from '../shared/maps';
+
+test('Google Maps links encode region queries and use public shop coordinates or address', () => {
+  const area = new URL(googleMapsSearch('Ninh Bình & Nam Định, Việt Nam'));
+  assert.equal(area.origin, 'https://www.google.com');
+  assert.equal(area.searchParams.get('api'), '1');
+  assert.equal(area.searchParams.get('query'), 'Ninh Bình & Nam Định, Việt Nam');
+  const shop = {
+    name: 'Garage kiểm thử',
+    address: 'Địa chỉ kiểm thử',
+    province: 'Ninh Bình',
+    lat: 20.4,
+    lng: 106.1,
+  };
+  assert.equal(new URL(branchGoogleMaps(shop)).searchParams.get('query'), '20.4,106.1');
+  const fallback = new URL(branchGoogleMaps({ ...shop, lat: 0, lng: 0 }));
+  assert.equal(
+    fallback.searchParams.get('query'),
+    'Garage kiểm thử, Địa chỉ kiểm thử, Ninh Bình, Việt Nam',
+  );
+});
 
 const branch: Branch = {
   id: 'test',

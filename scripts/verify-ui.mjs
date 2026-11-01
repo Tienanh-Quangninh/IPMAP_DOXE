@@ -73,6 +73,21 @@ try {
     'No initial application modal may block the header',
   );
   assert.equal(posts.length, 0, 'Automatic location must not create Telegram events');
+  await page.evaluate(() => document.fonts.ready);
+  for (const selector of ['body', 'h1', '.logo-mark', 'button']) {
+    assert.match(
+      await page
+        .locator(selector)
+        .first()
+        .evaluate((el) => getComputedStyle(el).fontFamily),
+      /Be Vietnam Pro/,
+      'Font must be global: ' + selector,
+    );
+  }
+  assert.equal(
+    await page.evaluate(() => document.fonts.check('900 20px "Be Vietnam Pro"', 'ĐỘ CHẤT RIÊNG')),
+    true,
+  );
   await page.screenshot({ path: 'artifacts/desktop.png', fullPage: true });
   await page.locator('#parts').getByRole('button', { name: 'Xe máy', exact: true }).click();
   assert.equal(await page.locator('.product-card').count(), 2);

@@ -1,5 +1,6 @@
 :root {
-  font-family: Arial, Helvetica, sans-serif;
+  --font-sans: 'Be Vietnam Pro', Arial, sans-serif;
+  font-family: var(--font-sans);
   color: #f0f0ed;
   background: #0b0d10;
   font-synthesis: none;
@@ -8,7 +9,7 @@
   --orange: #ff5a1f;
   --muted: #8f9298;
   --line: #ffffff17;
-  --display: Arial, Helvetica, sans-serif;
+  --display: var(--font-sans);
 }
 * {
   box-sizing: border-box;
@@ -285,7 +286,7 @@ section[id] {
   margin-left: 2px;
 }
 .logo-mark {
-  font-family: Impact, 'Arial Narrow', Arial, sans-serif;
+  font-family: var(--font-sans);
   font-size: 44px;
   letter-spacing: -9px;
   transform: skew(-10deg);
@@ -730,7 +731,7 @@ h1 > span:not(.orange) {
   left: 16px;
   font-size: 9px;
   color: #60646c;
-  font-family: monospace;
+  font-family: var(--font-sans);
 }
 .product-kind {
   position: absolute;
@@ -771,7 +772,7 @@ h1 > span:not(.orange) {
   letter-spacing: 1px;
 }
 .product-text h3 {
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-sans);
   font-size: 13px;
   font-weight: 700;
   line-height: 1.4;
@@ -913,7 +914,8 @@ h1 > span:not(.orange) {
   background: #ffffff03;
 }
 .service-index {
-  font: 10px monospace;
+  font-size: 10px;
+  font-family: var(--font-sans);
   color: #7b7e85;
 }
 .service-icon {
@@ -1096,7 +1098,7 @@ h1 > span:not(.orange) {
   top: 40px;
   font-size: 350px;
   line-height: 1;
-  font-family: Impact, sans-serif;
+  font-family: var(--font-sans);
   letter-spacing: -40px;
   transform: skew(-12deg);
   color: #0000000b;
@@ -1123,7 +1125,7 @@ h1 > span:not(.orange) {
 .careers-aside > .career-stamp {
   font-size: 8px;
   letter-spacing: 1.2px;
-  font-family: Arial, sans-serif;
+  font-family: var(--font-sans);
   font-style: normal;
   line-height: 1.8;
   border-top: 1px solid #ffffff33;
@@ -1583,7 +1585,7 @@ h1 > span:not(.orange) {
   color: #fff9;
 }
 .recruit-job h3 {
-  font-family: Arial, sans-serif;
+  font-family: var(--font-sans);
   font-size: 17px;
   margin: 15px 0;
 }

@@ -6,6 +6,7 @@ import {
   serverTime,
   validateApplication,
 } from '../../shared/server';
+import { branchGoogleMaps, googleMapsSearch } from '../../shared/maps';
 export const onRequest = route('POST', async (context) => {
   const input = validateApplication(await readBody(context.request));
   const {
@@ -44,6 +45,6 @@ export const onRequest = route('POST', async (context) => {
       vehicle,
       consent: true,
     },
-    message: `🛠️ HỒ SƠ ỨNG TUYỂN MỚI\nMã hồ sơ: ${eventId}\nChi nhánh: ${branch.name}\nVị trí: ${job.title}\nHọ tên: ${name}\nNăm sinh: ${birthYear}\nĐiện thoại: ${phone}\nHọc vấn: ${labels[education]}\nKinh nghiệm: ${experience} năm\nNhóm xe: ${vehicle === 'motorcycle' ? 'Xe máy' : 'Ô tô'}\nKỹ năng: ${skills}\n\nTHÔNG TIN TIẾP NHẬN\nThời gian: ${serverTime()}\nIP: ${context.request.headers.get('CF-Connecting-IP') || 'Không có'}\nThiết bị: ${describeClient(context.request)}\nKhu vực chi nhánh: ${branch.province}\nNguồn: Website tuyển dụng\nTrạng thái: Đã đồng ý gửi hồ sơ và thông tin tiếp nhận`,
+    message: `🛠️ HỒ SƠ ỨNG TUYỂN MỚI\nMã hồ sơ: ${eventId}\nChi nhánh: ${branch.name}\nVị trí: ${job.title}\nHọ tên: ${name}\nNăm sinh: ${birthYear}\nĐiện thoại: ${phone}\nHọc vấn: ${labels[education]}\nKinh nghiệm: ${experience} năm\nNhóm xe: ${vehicle === 'motorcycle' ? 'Xe máy' : 'Ô tô'}\nKỹ năng: ${skills}\n\nTHÔNG TIN TIẾP NHẬN\nThời gian: ${serverTime()}\nIP: ${context.request.headers.get('CF-Connecting-IP') || 'Không có'}\nThiết bị: ${describeClient(context.request)}\nKhu vực chi nhánh: ${branch.province}\nBản đồ khu vực: ${googleMapsSearch(branch.province + ', Việt Nam')}\nGoogle Maps chi nhánh: ${branchGoogleMaps(branch)}\nNguồn: Website tuyển dụng\nTrạng thái: Đã đồng ý gửi hồ sơ và thông tin tiếp nhận`,
   });
 });

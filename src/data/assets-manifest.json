@@ -20,5 +20,11 @@
     "source": "Original code-drawn vector illustrations for this project",
     "rights": "Original project artwork",
     "description": "Generic illustrative parts; no product brand or compatibility certification implied."
+  },
+  {
+    "files": ["/images/social-preview.png"],
+    "source": "Original 1200x630 social card rendered by scripts/generate-social.mjs, using existing AI-generated garage concept and Be Vietnam Pro",
+    "rights": "Original project layout; concept artwork provenance above; font SIL OFL 1.1 in /licenses/be-vietnam-pro-OFL.txt",
+    "description": "Open Graph PNG for Facebook/Zalo sharing. Not an actual customer project."
   }
 ]

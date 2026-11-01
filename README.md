@@ -45,6 +45,28 @@ npm run pages:dev
 
 ## Đưa lên Cloudflare Pages
 
+Điền các trường trên màn hình tạo project:
+
+| Trường                 | Giá trị                        |
+| ---------------------- | ------------------------------ |
+| Project name           | `ipmap-doxe`                   |
+| Repository             | `Tienanh-Quangninh/IPMAP_DOXE` |
+| Production branch      | `main`                         |
+| Framework preset       | `React (Vite)`                 |
+| Build command          | `npm run build`                |
+| Build output directory | `dist`                         |
+| Root directory         | Để trống (gốc repository, `/`) |
+
+Environment variables ở bước build:
+
+| Tên                       | Giá trị                                                                      |
+| ------------------------- | ---------------------------------------------------------------------------- |
+| `NODE_VERSION`            | `24`                                                                         |
+| `VITE_SITE_URL`           | `https://ipmap-doxe.pages.dev` (đổi thành domain thật khi dùng domain riêng) |
+| `VITE_TURNSTILE_SITE_KEY` | Site key công khai của Turnstile, có thể bỏ trống khi chỉ xem giao diện      |
+
+`functions/` được Cloudflare nhận diện tự động ở gốc repository, không phải điền vào Build output directory. Dùng Node 24 vì quá trình kiểm thử dùng SQLite của Node. Không đặt Telegram token hoặc Turnstile secret vào biến `VITE_*`.
+
 1. Trong Cloudflare Pages, kết nối GitHub repository `Tienanh-Quangninh/IPMAP_DOXE`, chọn nhánh `main`.
 2. Build command: `npm run build`; output: `dist`; root: thư mục gốc; Functions: `functions/`.
 3. Tạo Turnstile widget cho domain thực tế. Thêm `VITE_TURNSTILE_SITE_KEY` vào biến build công khai. Không đặt secret vào biến frontend.
@@ -61,6 +83,14 @@ npx wrangler d1 execute racing-garage-events --remote --file=shared/schema.sql
 7. Kiểm tra cả hai luồng trên preview với Telegram nhóm thử nghiệm, sau đó mới bật production. Không dùng secret thử nghiệm ở production.
 
 Các POST trả lỗi nếu thiếu binding/secrets. Dữ liệu chi nhánh, sản phẩm và tuyển dụng vẫn lưu JSON. D1 chỉ lưu metadata chống trùng và giới hạn tần suất để xử lý đúng các yêu cầu đồng thời. Không có thông báo Telegram thực tế nào được gửi trong quá trình kiểm thử tự động. Chi tiết hợp đồng API, thời hạn dữ liệu và xử lý trạng thái chưa rõ nằm trong [tài liệu backend](shared/README.md).
+
+## Font, bản đồ và ảnh chia sẻ
+
+- Be Vietnam Pro áp dụng toàn cục, tự host qua Fontsource; license nằm trong `public/licenses/be-vietnam-pro-OFL.txt`.
+- Hai thông báo Telegram có Google Maps khu vực và chi nhánh. Link chi nhánh dùng tọa độ cửa hàng từ cấu hình, hoặc tên/địa chỉ nếu thiếu tọa độ. Không gửi GPS cá nhân; không cần Google Maps API key.
+- `public/images/social-preview.png` là ảnh PNG **1200×630 px**, được khai báo bằng Open Graph/Twitter Cards trong HTML ban đầu cho Facebook/Zalo và các trình đọc thẻ chia sẻ. Dựng lại bằng `npm run social:image` (cần Chrome; đặt `CHROME_PATH` nếu khác đường dẫn mặc định).
+- `VITE_SITE_URL` quyết định URL tuyệt đối của canonical, `og:url`, `og:image`, `robots.txt` và sitemap lúc build. Nếu dùng domain riêng, đổi biến này rồi Redeploy. Font và ảnh được phục vụ cùng website, không gọi Google Fonts hoặc dịch vụ ảnh ngoài khi khách truy cập.
+- Sau khi deploy, kiểm tra HTML nguồn có meta Open Graph và mở `/images/social-preview.png` trực tiếp. Nền tảng có thể cache ảnh cũ; dùng Facebook Sharing Debugger hoặc công cụ kiểm tra chia sẻ của Zalo để tải lại. Chưa xác minh preview trực tiếp trên Facebook/Zalo vì chủ dự án sẽ tự triển khai.
 
 ## Nguồn kỹ thuật
 

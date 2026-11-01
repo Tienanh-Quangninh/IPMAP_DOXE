@@ -37,3 +37,5 @@ Bộ đếm cũ được dọn khi có gửi mới. Thiết lập chính sách l
 - Tên địa phương trước sắp xếp: [Nghị quyết 202/2025/QH15 — Báo Điện tử Chính phủ](https://baochinhphu.vn/nghi-quyet-cua-quoc-hoi-ve-sap-xep-don-vi-hanh-chinh-cap-tinh-102250612191145158.htm). `provinces.json` là danh mục khu vực, không phải danh sách cơ sở.
 
 `npm test` dùng mock network và SQLite in-memory để kiểm tra chống trùng, gửi đồng thời, giới hạn, lỗi Telegram và xác thực. Không gửi tin Telegram thực tế.
+
+Cả hai thông báo có link Google Maps khu vực và chi nhánh, tạo bằng `shared/maps.ts`. Query tọa độ chỉ lấy từ dữ liệu cửa hàng, không lấy GPS khách truy cập. URL dùng Maps URLs `api=1`, không cần API key. Nếu cấu hình chưa có tọa độ hợp lệ, link tìm bằng tên/địa chỉ/tỉnh của cơ sở.

@@ -12,9 +12,12 @@
     "check:pages": "wrangler pages functions build --outdir .cloudflare-build",
     "test:ui": "node scripts/verify-ui.mjs",
     "format": "prettier --write .",
-    "format:check": "prettier --check ."
+    "format:check": "prettier --check .",
+    "social:image": "node scripts/generate-social.mjs",
+    "check:seo": "node scripts/verify-seo.mjs"
   },
   "dependencies": {
+    "@fontsource/be-vietnam-pro": "^5.3.0",
     "lucide-react": "^0.468.0",
     "react": "^19.2.0",
     "react-dom": "^19.2.0"
