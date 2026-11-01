@@ -35,6 +35,18 @@ const errors = [];
 await mkdir('artifacts', { recursive: true });
 try {
   const context = await browser.newContext({ viewport: { width: 1440, height: 1000 } });
+  await context.addInitScript(() => {
+    window.__gpsRequests = 0;
+    Object.defineProperty(navigator, 'geolocation', {
+      configurable: true,
+      value: {
+        getCurrentPosition(_resolve, reject) {
+          window.__gpsRequests++;
+          queueMicrotask(() => reject({ code: 1, message: 'Permission denied by test' }));
+        },
+      },
+    });
+  });
   const page = await context.newPage();
   page.on('pageerror', (e) => errors.push(e.message));
   const posts = [];
@@ -45,10 +57,22 @@ try {
     });
   });
   await page.goto(url);
-  await page.getByRole('dialog').waitFor();
-  // Initial prompt must not trigger a location permission or network event.
-  assert.equal(posts.length, 0);
-  await page.getByRole('button', { name: 'Để sau, tiếp tục khám phá' }).click();
+  await page.waitForFunction(
+    () =>
+      window.__gpsRequests === 1 &&
+      document.querySelector('.branch-button')?.textContent?.includes('Chọn chi nhánh'),
+  );
+  assert.equal(
+    await page.evaluate(() => window.__gpsRequests),
+    1,
+    'GPS must be requested on load, once in StrictMode, before any click',
+  );
+  assert.equal(
+    await page.getByRole('dialog').count(),
+    0,
+    'No initial application modal may block the header',
+  );
+  assert.equal(posts.length, 0, 'Automatic location must not create Telegram events');
   await page.screenshot({ path: 'artifacts/desktop.png', fullPage: true });
   await page.locator('#parts').getByRole('button', { name: 'Xe máy', exact: true }).click();
   assert.equal(await page.locator('.product-card').count(), 2);
@@ -107,10 +131,22 @@ try {
     );
   assert.deepEqual(failedImages, []);
   console.log(
-    'UI checks passed: region consent, persistence, catalog filters, detail dialogs, preview form, mobile navigation, privacy reset, 4 responsive widths, no unexpected POSTs or runtime errors.',
+    'UI checks passed: automatic GPS request, denied-permission fallback, region consent, persistence, catalog filters, detail dialogs, preview form, mobile navigation, privacy reset, 4 responsive widths, no unexpected POSTs or runtime errors.',
   );
   // Exercise configured frontend flows with isolated fixtures and mocked providers.
   const configured = await browser.newContext({ viewport: { width: 1024, height: 900 } });
+  await configured.addInitScript(() => {
+    window.__gpsRequests = 0;
+    Object.defineProperty(navigator, 'geolocation', {
+      configurable: true,
+      value: {
+        getCurrentPosition(resolve) {
+          window.__gpsRequests++;
+          queueMicrotask(() => resolve({ coords: { latitude: 20.4, longitude: 106.1 } }));
+        },
+      },
+    });
+  });
   const flow = await configured.newPage();
   flow.on('pageerror', (e) => errors.push(e.message));
   const branch = {
@@ -171,13 +207,29 @@ try {
     return route.fulfill({ json: { ok: true, eventId: payload.eventId } });
   });
   await flow.goto(url);
+  await flow.waitForFunction(
+    () =>
+      window.__gpsRequests === 1 &&
+      document.querySelector('.branch-button')?.textContent?.includes('Cơ sở kiểm thử'),
+  );
+  assert.equal(
+    events.length,
+    0,
+    'Granted GPS must update header without automatically sending Telegram',
+  );
+  assert.equal(await flow.getByRole('dialog').count(), 0);
+  await flow.locator('.branch-button').click();
   await flow.getByRole('dialog').waitFor();
-  await flow.getByLabel('Tỉnh / thành phố').selectOption('Ninh Bình');
   await flow.getByRole('checkbox').check();
   await flow.getByRole('button', { name: 'Xác nhận & chia sẻ khu vực' }).click();
   await flow.getByRole('dialog').waitFor({ state: 'hidden' });
   assert.equal(events.length, 1);
   assert.match(events[0].path, /location-consent$/);
+  assert.equal(
+    events[0].payload.source,
+    'gps',
+    'Automatic GPS source must be retained when sharing',
+  );
   assert.deepEqual(
     Object.keys(events[0].payload).sort(),
     ['branchId', 'consent', 'eventId', 'province', 'source', 'turnstileToken'].sort(),
@@ -212,7 +264,7 @@ try {
   assert.deepEqual(errors, []);
   await configured.close();
   console.log(
-    'Configured flows passed: separate consent event, recruitment popup only once, application validation, provider failure, retry with same ID, confirmed success. No external provider calls.',
+    'Configured flows passed: granted GPS selects branch automatically in header before click, separate consent event, recruitment popup only once, application validation, provider failure, retry with same ID, confirmed success. No external provider calls.',
   );
   await context.close();
 } finally {

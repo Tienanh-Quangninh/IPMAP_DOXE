@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ArrowDown,
   ArrowRight,
@@ -27,7 +27,9 @@ import PartArt from './components/PartArt';
 import productsData from './data/products.json';
 import branchData from './data/branches.json';
 import type { Branch, Job, Product } from './types';
-import { api } from './services/api';
+import { api, nearestBranch } from './services/api';
+import { requestBrowserLocation } from './services/location';
+import provinces from './data/provinces.json';
 
 const products = productsData as Product[];
 const builds = [
@@ -73,6 +75,10 @@ export default function App() {
     [formOpen, setFormOpen] = useState(false),
     [job, setJob] = useState<Job | null>(null),
     [recruitOpen, setRecruitOpen] = useState(false);
+  const [locationStatus, setLocationStatus] = useState<'loading' | 'gps' | 'ip' | 'manual'>(
+    'loading',
+  );
+  const manualRegionVersion = useRef(0);
   const [vehicle, setVehicle] = useState('all'),
     [category, setCategory] = useState('all'),
     [model, setModel] = useState('all'),
@@ -97,22 +103,49 @@ export default function App() {
     closePrivacy = useCallback(() => setPrivacy(false), []);
   useEffect(() => {
     let active = true;
-    api<{ branches: Branch[] }>('branches')
-      .then((d) => {
-        if (active) setBranches(d.branches.filter((b) => b.active && b.verified));
-      })
-      .catch(() => {});
-    const timer = setTimeout(() => {
-      let seen = false;
+    const version = manualRegionVersion.current;
+    const canUpdate = () => active && version === manualRegionVersion.current;
+    function remember(province: string, selectedBranch: Branch | null) {
+      const next = { province, branchId: selectedBranch?.id || '' };
+      setSelection(next);
       try {
-        seen = !!sessionStorage.getItem('rg-region-prompt');
-        sessionStorage.setItem('rg-region-prompt', '1');
+        localStorage.setItem('rg-region', JSON.stringify(next));
       } catch {}
-      if (!seen && !selection.province) setLocationOpen(true);
-    }, 1200);
+    }
+    // Request the browser's permission immediately on load, without a click.
+    const gps = requestBrowserLocation().then(
+      (coords) => coords,
+      () => null,
+    );
+    const availableBranches = api<{ branches: Branch[] }>('branches')
+      .then((d) => d.branches.filter((b) => b.active && b.verified))
+      .catch(() => (branchData as Branch[]).filter((b) => b.active && b.verified));
+    availableBranches.then((items) => {
+      if (active) setBranches(items);
+    });
+    const suggestion = api<{ province: string | null }>('branch-suggestion')
+      .then((d) => (provinces.some((p) => p.name === d.province) ? d.province : null))
+      .catch(() => null);
+    // Show an approximate region in the header while browser permission is pending.
+    Promise.all([suggestion, availableBranches]).then(([province, items]) => {
+      if (!canUpdate() || !province || selection.province) return;
+      const matches = items.filter((b) => b.province === province);
+      remember(province, matches.length === 1 ? matches[0] : null);
+    });
+    Promise.all([gps, availableBranches, suggestion]).then(([coords, items, province]) => {
+      if (!canUpdate()) return;
+      const nearest = coords ? nearestBranch(coords.latitude, coords.longitude, items) : null;
+      if (nearest) {
+        remember(nearest.province, nearest);
+        setLocationStatus('gps');
+      } else {
+        setLocationStatus(
+          selection.province ? 'manual' : province ? 'ip' : coords ? 'gps' : 'manual',
+        );
+      }
+    });
     return () => {
       active = false;
-      clearTimeout(timer);
     };
   }, []);
   useEffect(() => {
@@ -139,6 +172,8 @@ export default function App() {
     return () => clearTimeout(timer);
   }, [jobs]);
   function selectRegion(province: string, b: Branch | null) {
+    manualRegionVersion.current++;
+    setLocationStatus('manual');
     const s = { province, branchId: b?.id || '' };
     setSelection(s);
     try {
@@ -200,9 +235,29 @@ export default function App() {
           ))}
         </nav>
         <div className="header-actions">
-          <button className="branch-button" onClick={() => setLocationOpen(true)}>
+          <button
+            className="branch-button"
+            onClick={() => setLocationOpen(true)}
+            title={
+              locationStatus === 'gps'
+                ? 'Vị trí GPS đã được trình duyệt cấp quyền'
+                : locationStatus === 'ip'
+                  ? 'Khu vực ước lượng theo mạng'
+                  : locationStatus === 'loading'
+                    ? 'Đang yêu cầu quyền định vị từ trình duyệt'
+                    : 'Chọn hoặc thay đổi khu vực'
+            }
+          >
             <MapPin size={17} />
-            <span>{branch?.name || selection.province || 'Chọn chi nhánh'}</span>
+            <span aria-live="polite">
+              {branch?.name ||
+                selection.province ||
+                (locationStatus === 'loading'
+                  ? 'Đang định vị…'
+                  : locationStatus === 'gps'
+                    ? 'Đã nhận vị trí GPS'
+                    : 'Chọn chi nhánh')}
+            </span>
             <ChevronRight size={14} />
           </button>
           <button
@@ -651,7 +706,8 @@ export default function App() {
               <ArrowUpRight size={18} />
             </button>
             <p className="micro">
-              Bạn chủ động chọn khu vực. Chúng tôi chỉ dùng GPS khi bạn cho phép.
+              Trang tự yêu cầu quyền vị trí khi tải. GPS chỉ hoạt động khi bạn cho phép trên trình
+              duyệt.
             </p>
           </div>
           <div className="branch-panel">
@@ -861,6 +917,8 @@ export default function App() {
         <BranchSelector
           branches={branches}
           initialProvince={selection.province}
+          initialBranchId={selection.branchId}
+          initialSource={locationStatus === 'gps' ? 'gps' : 'manual'}
           onSelect={selectRegion}
           onClose={closeLocation}
         />
@@ -981,8 +1039,9 @@ export default function App() {
             onClick={() => {
               try {
                 localStorage.removeItem('rg-region');
-                sessionStorage.removeItem('rg-region-prompt');
               } catch {}
+              manualRegionVersion.current++;
+              setLocationStatus('manual');
               setSelection({ province: '', branchId: '' });
               closePrivacy();
             }}

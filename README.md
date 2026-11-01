@@ -2,7 +2,7 @@
 
 Landing page tiếng Việt cho xe độ, phụ tùng và tuyển dụng theo khu vực. React + Vite + TypeScript, Cloudflare Pages Functions, Telegram, Turnstile.
 
-Website: **https://ipmap-doxe.pages.dev** — đã xuất bản trên Cloudflare Pages ngày 01/11/2026. Project `ipmap-doxe` liên kết GitHub repository này, tự build và triển khai nhánh `main` bằng Node 24. API công khai và giao diện đã được kiểm tra trực tiếp trên production.
+Mã nguồn đã lưu trên GitHub. Theo yêu cầu chủ dự án, project Cloudflare đã được xóa; bạn sẽ tự kết nối repository vào Cloudflare Pages sau.
 
 Hiện chưa mở tiếp nhận hồ sơ/thông báo Telegram: còn cần secrets, D1 và dữ liệu chi nhánh/tuyển dụng thật. Không dùng dữ liệu cơ sở giả để mở form.
 
@@ -30,7 +30,7 @@ npm run pages:dev
 
 - Giao diện đen/cam responsive, sticky header, menu mobile, section xe máy/ô tô, dịch vụ và FAQ.
 - Danh mục phụ tùng với bộ lọc loại xe, nhóm sản phẩm, hãng, mẫu xe; chi tiết sản phẩm và gallery phóng lớn.
-- Danh mục 34 tỉnh/thành và tên địa phương cũ. Chọn khu vực thủ công; GPS chỉ yêu cầu khi nhấn đồng ý, tọa độ chỉ đối chiếu trên trình duyệt.
+- Danh mục 34 tỉnh/thành và tên địa phương cũ. Tự yêu cầu quyền GPS ngay khi tải trang, cập nhật vị trí/chi nhánh ở header; IP gợi ý khu vực ước lượng trong lúc chờ. Nếu bị từ chối hoặc không xác định được, vẫn chọn thủ công được. Tọa độ chỉ đối chiếu trên trình duyệt, không gửi đi.
 - Đồng ý chia sẻ khu vực tách khỏi đơn ứng tuyển. Không gửi tọa độ GPS hay IP trong sự kiện chọn khu vực.
 - Popup chỉ hiển thị nếu chi nhánh đã xác minh có việc đang tuyển; đóng popup sẽ không tự bật lại trong cùng phiên.
 - Form ứng tuyển kiểm tra đầu vào, thông báo dữ liệu audit và checkbox đồng ý, Turnstile ở frontend/backend.

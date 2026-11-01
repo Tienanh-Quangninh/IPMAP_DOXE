@@ -6,22 +6,27 @@ import provinces from '../data/provinces.json';
 import type { Branch } from '../types';
 import { api, ApiError, nearestBranch } from '../services/api';
 import { eventIdFor } from '../services/events';
+import { requestBrowserLocation } from '../services/location';
 
 export default function BranchSelector({
   branches,
   initialProvince,
+  initialBranchId = '',
+  initialSource = 'manual',
   onSelect,
   onClose,
 }: {
   branches: Branch[];
   initialProvince: string;
+  initialBranchId?: string;
+  initialSource?: 'gps' | 'manual';
   onSelect: (province: string, branch: Branch | null) => void;
   onClose: () => void;
 }) {
   const [province, setProvince] = useState(initialProvince),
-    [branchId, setBranchId] = useState(''),
+    [branchId, setBranchId] = useState(initialBranchId),
     [sharing, setSharing] = useState(false),
-    [source, setSource] = useState<'gps' | 'manual'>('manual');
+    [source, setSource] = useState<'gps' | 'manual'>(initialSource);
   const [message, setMessage] = useState(''),
     [busy, setBusy] = useState(false),
     [token, setToken] = useState(''),
@@ -32,33 +37,24 @@ export default function BranchSelector({
     branches.find((b) => b.id === branchId) || (matches.length === 1 ? matches[0] : null);
   async function gps() {
     setMessage('');
-    if (!navigator.geolocation) {
-      setMessage('Trình duyệt không hỗ trợ định vị. Bạn có thể chọn khu vực bên dưới.');
-      return;
-    }
     setBusy(true);
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        const nearest = nearestBranch(pos.coords.latitude, pos.coords.longitude, branches);
-        if (nearest) {
-          setProvince(nearest.province);
-          setBranchId(nearest.id);
-          setSource('gps');
-          setMessage(
-            'Đã tìm cơ sở gần nhất trong danh sách đã xác minh. Tọa độ chỉ xử lý trên thiết bị của bạn.',
-          );
-        } else
-          setMessage(
-            'Chưa có dữ liệu cơ sở được xác minh để đối chiếu GPS. Vui lòng chọn tỉnh/thành bên dưới.',
-          );
-        setBusy(false);
-      },
-      () => {
-        setBusy(false);
-        setMessage('Chưa nhận được quyền vị trí. Bạn vẫn có thể chọn khu vực thủ công.');
-      },
-      { enableHighAccuracy: false, timeout: 10000, maximumAge: 60000 },
-    );
+    try {
+      const coords = await requestBrowserLocation();
+      const nearest = nearestBranch(coords.latitude, coords.longitude, branches);
+      if (nearest) {
+        setProvince(nearest.province);
+        setBranchId(nearest.id);
+        setSource('gps');
+        setMessage('Đã chọn cơ sở gần nhất theo GPS được cấp quyền.');
+      } else
+        setMessage(
+          'Đã nhận GPS, nhưng chưa có dữ liệu cơ sở đã xác minh để đối chiếu. Bạn có thể chọn tỉnh/thành thủ công.',
+        );
+    } catch {
+      setMessage('Chưa nhận được quyền vị trí. Bạn vẫn có thể chọn khu vực thủ công.');
+    } finally {
+      setBusy(false);
+    }
   }
   async function suggest() {
     setBusy(true);
@@ -119,10 +115,11 @@ export default function BranchSelector({
       <p className="muted">Chọn khu vực để tìm dịch vụ và cơ hội nghề nghiệp phù hợp với bạn.</p>
       <button className="button button-outline full" disabled={busy} onClick={gps}>
         <Navigation size={17} />
-        {busy ? 'Đang xử lý…' : 'Đồng ý dùng GPS trên thiết bị'}
+        {busy ? 'Đang xử lý…' : 'Yêu cầu lại vị trí GPS'}
       </button>
       <p className="micro">
-        GPS chỉ được yêu cầu khi bạn nhấn nút. Tọa độ không gửi đến máy chủ hoặc Telegram.
+        Trang tự yêu cầu quyền GPS khi tải. Nếu chưa cấp quyền, bạn có thể thử lại hoặc chọn thủ
+        công. Tọa độ chỉ xử lý trên thiết bị.
       </p>
       <button className="text-button full" onClick={suggest} disabled={busy}>
         Gợi ý tỉnh/thành theo mạng (ước lượng)
