@@ -1,0 +1,8 @@
+node_modules
+dist
+.cloudflare-build
+.wrangler
+artifacts
+package-lock.json
+PROJECT-BRIEF.vi.txt
+public/images

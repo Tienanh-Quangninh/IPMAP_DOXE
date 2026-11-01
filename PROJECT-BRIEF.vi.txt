@@ -1,0 +1,527 @@
+KẾ HOẠCH XÂY DỰNG LANDING PAGE XE ĐỘ – PHỤ TÙNG – TUYỂN DỤNG TOÀN QUỐC
+React + Vite
+GitHub
+Cloudflare Pages
+Telegram Bot
+
+Mục tiêu là xây dựng một website mang phong cách Biker – Racing – Performance Tuning, hướng đến giới trẻ đam mê xe máy, ô tô, độ xe, nâng cấp hiệu suất và mua bán phụ tùng tại Việt Nam.
+
+Website có ba chức năng chính:
+1. Quảng bá thương hiệu và dịch vụ: trưng bày xe độ, sản phẩm, phụ tùng, dịch vụ nâng cấp và các dự án nổi bật.
+2. Cá nhân hóa theo địa phương: hiển thị chi nhánh tương ứng với vị trí khách truy cập, ngay từ phần header.
+3. Tuyển dụng theo khu vực: tự động hiển thị thông báo tuyển nhân viên tại chi nhánh phù hợp, tiếp nhận hồ sơ và gửi thông báo về Telegram.
+1. Kiến trúc tổng thể
+GitHub Repository
+
+Quản lý mã nguồn, hình ảnh và cấu hình
+
+
+Cloudflare Pages
+
+Tự động build và deploy khi push code
+
+
+Website hiển thị cho khách truy cập
+Chọn chi nhánh
+
+
+Ứng tuyển
+
+
+Dịch vụ xe độ
+
+
+Phụ tùng
+
+
+
+
+
+Cloudflare Pages Functions
+
+Xử lý biểu mẫu, vị trí đã đồng ý chia sẻ, kiểm tra đầu vào và tạo sự kiện
+
+
+Telegram – Nhóm công ty
+
+Thông báo chọn chi nhánh và tiếp nhận ứng viên
+
+
+Cloudflare Pages hiện hỗ trợ kết nối trực tiếp GitHub và triển khai tự động khi có commit mới. Pages Functions cũng cho phép xử lý các API mà không phải vận hành máy chủ riêng.
+Cloudflare Pages docs+1
+
+
+Lưu ý bảo mật ngay từ đầu: Bot token Telegram đã được gửi trong cuộc trò chuyện nên cần thu hồi và tạo token mới bằng BotFather trước khi đưa vào production. Token mới chỉ lưu trong Cloudflare Secrets, tuyệt đối không đưa vào GitHub, JavaScript frontend hoặc các biến môi trường công khai.
+Cloudflare Pages docs
+
+2. Thiết kế giao diện – Racing & Street Tuning
+
+
+
+
+
+
+
+
+
+Tham khảo phong cách xe máy độ, góc máy thấp, nổi bật chi tiết kỹ thuật.
+
+
+
+
+
+
+
+
+
+Tham khảo phong cách ô tô độ widebody, không gian garage tối và ánh sáng tương phản.
+
+Ảnh tham khảo từ Znews và Autodaily, dùng để định hướng thiết kế, chưa phải ảnh được cấp phép để đưa lên website thương mại.Bộ nhận diện hình ảnh
+BẢNG MÀU ĐỀ XUẤT
+DARK PERFORMANCE
+
+RACING EDITION
+
+
+#0B0D10
+
+Carbon
+
+
+#20252B
+
+Graphite
+
+
+#FF5A1F
+
+Racing
+
+
+#E5E7EB
+
+Silver
+
+
+#A6192E
+
+Redline
+
+
+
+BUILT TO STAND OUT.
+ĐỘ CHẤT RIÊNG – NÂNG TẦM HIỆU SUẤT
+
+Phong cách đường phố, công nghệ và cá tính. Từ xe máy phổ thông đến ô tô nâng cấp hiệu suất.
+
+Phong cách triển khai: nền đen nhám, họa tiết carbon fiber, đường cắt chéo, hiệu ứng ánh sáng cam/đỏ, chữ tiêu đề đậm và ảnh full-width. Ưu tiên chuyển động mượt, không lạm dụng hiệu ứng làm nặng website.
+3. Cấu trúc các section trên Landing Page
+Thứ tự	Section	Nội dung triển khai
+01	Sticky Header	Logo, dịch vụ, phụ tùng, xe độ, dự án, tuyển dụng, nút chọn chi nhánh
+02	Hero Banner	Ảnh xe máy và ô tô độ nổi bật, tiêu đề lớn, CTA xem dịch vụ và mua phụ tùng
+03	Highlight	Điểm nhấn dịch vụ, đội ngũ kỹ thuật, danh mục xe hỗ trợ
+04	Motorcycle Tuning	Xe máy độ kiểng, dàn chân, phanh, phuộc, đèn, hệ thống xả, động cơ
+05	Car Performance	Ô tô độ ngoại thất, bodykit, mâm, phanh, treo, nội thất, nâng cấp hiệu suất
+06	Shop Parts	Lọc phụ tùng theo xe máy/ô tô, hãng, mẫu xe và nhóm sản phẩm
+07	Featured Builds	Gallery ảnh trước/sau, góc nhìn dự án, thông số nâng cấp
+08	Services	Bảo dưỡng, sửa chữa, lắp đặt phụ tùng, tư vấn nâng cấp
+09	Branch Locator	Chi nhánh gần khách hàng, địa chỉ, bản đồ, liên hệ
+10	Recruitment	Tuyển kỹ thuật viên, chính sách lương thưởng, form ứng tuyển
+11	CTA / Footer	Liên hệ, hotline, mạng xã hội, địa chỉ các cơ sở và thông tin doanh nghiệp
+
+Nhóm phương tiện và phụ tùng
+
+
+
+
+
+
+
+
+
+Xe máy
+
+Honda Wave, Dream, Winner X, Vario, Air Blade, SH, Yamaha Exciter, Sirius, NVX, Suzuki Raider, Satria, xe côn tay và phân khối lớn.
+
+Phụ tùng: phuộc, hệ thống phanh, mâm, lốp, đèn, dàn áo, ECU, pô, đồ chơi CNC và phụ kiện trang trí.
+
+
+
+
+
+
+
+
+
+
+
+
+Ô tô
+
+Toyota Vios, Camry, Fortuner, Hyundai Accent, Mazda 3, Kia K3, Honda Civic, Ford Ranger, VinFast và các mẫu xe phổ biến khác.
+
+Phụ tùng: bodykit, mâm lốp, phanh, giảm xóc, đèn, nội thất, âm thanh, hệ thống xả và nâng cấp vận hành.
+
+
+Phương án lấy và quản lý hình ảnh
+Thay vì website mỗi lần tải lại tự tìm ảnh Google, sử dụng một bước chuẩn bị nội dung trước khi build:
+- Tìm ảnh trên Google Images để tham khảo, sau đó chọn ảnh từ nguồn được phép sử dụng thương mại như Pexels hoặc Unsplash, cùng ảnh do các chi nhánh tự chụp.
+  Pexels+1
+- Tải về repository, đặt tên theo nhóm xe, tối ưu AVIF/WebP, dùng srcset và lazy loading.
+- Chuẩn hóa màu ảnh về đen, xám khói, điểm nhấn cam/đỏ để đồng nhất toàn bộ giao diện.
+- Lưu nguồn và quyền sử dụng ảnh trong assets-manifest.json, không hotlink ảnh ngẫu nhiên từ Google.
+Các gallery sẽ có bộ lọc Xe máy / Ô tô / Độ kiểng / Nâng cấp hiệu suất / Phụ tùng, hỗ trợ xem ảnh phóng lớn trên điện thoại.
+4. Chọn chi nhánh theo vị trí ngay khi truy cập
+Đây là tính năng trọng tâm, nên triển khai thành một luồng riêng thay vì gộp với form tuyển dụng.
+Giao diện header và hộp thoại vị trí
+RACING GARAGE
+
+CUSTOM BUILDS & PERFORMANCE
+
+Chọn chi nhánh
+
+
+
+Tìm chi nhánh gần bạn
+
+Website có thể sử dụng vị trí của bạn để hiển thị cửa hàng, dịch vụ và thông tin tuyển dụng phù hợp tại khu vực bạn đang ở.
+  Minh họa: Đồng ý chia sẻ khu vựcChọn tỉnh/thành thủ công
+Minh họa tương tác giao diện dự kiến, không phải chức năng xác định vị trí đang hoạt động.
+Khi trang vừa mở, hiển thị hộp thoại trên ở khu vực đầu trang. Sau khi người dùng chọn Đồng ý, trình duyệt mới yêu cầu quyền định vị thực tế. Trình duyệt phải cấp quyền vị trí rõ ràng và kết nối phải sử dụng HTTPS.
+MDN+1
+
+Luồng xử lý
+01
+
+Khách truy cập website
+
+Hiển thị giao diện yêu cầu chia sẻ vị trí
+
+
+
+02
+
+Khách đồng ý
+
+Trình duyệt hỏi quyền truy cập vị trí
+
+
+
+03
+
+Xác định khu vực
+
+Đối chiếu với danh mục chi nhánh
+
+
+
+04
+
+Cập nhật giao diện
+
+Header, chi nhánh, dịch vụ và popup tuyển dụng
+
+
+
+05
+
+Gửi thông báo
+
+Gửi một sự kiện xác nhận chia sẻ khu vực qua API đến Telegram
+
+
+
+Hai hình thức xác định vị trí:
+- GPS trình duyệt: được người dùng cho phép, dùng để chọn chi nhánh gần nhất. Nên tính toán khoảng cách trên trình duyệt nếu đã có tọa độ các cửa hàng.
+- IP Geolocation: Cloudflare có thể cung cấp thông tin địa lý ước lượng từ IP qua request.cf, chẳng hạn thành phố, vùng, kinh độ và vĩ độ. Đây chỉ nên là gợi ý khu vực, không thay thế GPS chính xác.
+  Cloudflare Workers docs
+Nếu từ chối chia sẻ vị trí, khách vẫn được sử dụng website và chọn chi nhánh thủ công; không gửi tọa độ hoặc bản ghi vị trí cá nhân sang Telegram.
+Danh mục chi nhánh toàn quốc
+Dữ liệu cấu hình nên bao phủ 34 tỉnh, thành phố hiện hành, nhưng chỉ công bố địa chỉ chi nhánh thực sự đã được xác minh. Cần hỗ trợ cả tên địa phương cũ để khách dễ tìm kiếm.
+Xây Dựng Chính Sách
+
+
+Ví dụ: Nam Định đã sáp nhập vào tỉnh Ninh Bình từ năm 2025. Website vẫn có thể đặt tên thương mại là Chi nhánh Nam Định nếu cơ sở thực tế nằm tại khu vực Nam Định, đồng thời lưu tỉnh hiện hành là Ninh Bình.
+baochinhphu.vn
+
+
+Cấu hình mỗi chi nhánh gồm:
+
+branch_id, tên hiển thị, tỉnh hiện hành, tên địa phương cũ, địa chỉ, GPS cửa hàng, hotline, đường dẫn bản đồ, dịch vụ, tình trạng hoạt động và trạng thái tuyển dụng.
+
+Không nên tự tạo địa chỉ hoặc tuyên bố có cơ sở đang hoạt động khi chưa có dữ liệu xác nhận.
+5. Popup tuyển dụng theo chi nhánh
+Popup tuyển dụng sẽ tự động cá nhân hóa sau khi xác định được chi nhánh, độc lập với việc khách có gửi đơn ứng tuyển hay không.
+HOT RECRUITMENT
+
+GIA NHẬP ĐỘI NGŨ RACING GARAGE
+Tuyển kỹ thuật viên độ xe – sửa chữa xe máy
+Chi nhánh Nam Định (ví dụ)
+
+THU NHẬP TỪ
+15.000.000đ/tháng
++ Thưởng doanh số nếu có
+
+Miễn phí ăn uống
+
+
+Chỗ ở tập thể
+
+
+Thưởng Tết cao
+
+
+Môi trường xe độ
+
+
+
+
+Thông tin ứng tuyển
+Họ và tên
+
+Năm sinh
+
+
+Số điện thoại
+
+
+
+Kỹ năng chuyên môn
+
+Trình độ học vấn
+Không có
+
+THCS
+
+THPT
+
+Đại học
+
+
+GỬI ĐƠN ỨNG TUYỂN Giao diện minh họa, chưa kết nối biểu mẫu hay gửi dữ liệu.
+
+Form thực tế bổ sung số năm kinh nghiệm, nhóm xe chuyên môn (xe máy/ô tô), chi nhánh mong muốn và lựa chọn cho phép gửi thông tin ứng tuyển đến bộ phận tuyển dụng.
+
+Quy tắc hiển thị popup:
+- Sau khi chọn được chi nhánh, kiểm tra recruitment_enabled và danh sách vị trí đang tuyển.
+- Nếu chi nhánh đang tuyển, hiển thị popup sau khoảng 5–8 giây hoặc khi khách bắt đầu tương tác với nội dung.
+- Nếu khách đã đóng, không tự bật lại liên tục trong cùng phiên.
+- Nếu không có vị trí đang tuyển, không hiển thị thông báo tuyển dụng giả.
+- Nếu không xác định được vị trí, cho khách chọn chi nhánh trước khi ứng tuyển.
+6. Đồng bộ Telegram – hai sự kiện riêng biệt
+Điểm quan trọng nhất theo yêu cầu: sự kiện chia sẻ vị trí và sự kiện ứng tuyển phải hoạt động độc lập.
+Sự kiện	Thời điểm kích hoạt	Telegram
+LOCATION_CONSENT	Sau khi khách chủ động đồng ý chia sẻ khu vực	Gửi thông báo chọn chi nhánh
+JOB_APPLICATION	Sau khi khách hoàn thành form và nhấn Ứng tuyển	Gửi hồ sơ ứng viên kèm dữ liệu audit được thông báo trước
+
+Mẫu thông báo 1 – Khách đồng ý chia sẻ vị trí
+RACING GARAGE BOT
+
+Ví dụ thông báo
+
+
+📍 KHÁCH HÀNG ĐÃ CHỌN CHI NHÁNH
+
+Sự kiện: LOCATION_CONSENT
+Thời gian: 01/11/2026 12:45 GMT+7
+
+Khu vực: Nam Định
+Tỉnh hiện hành: Ninh Bình
+Chi nhánh: Nam Định
+Nguồn vị trí: GPS được cấp quyền
+
+Trạng thái: Đã đồng ý chia sẻ khu vực
+Trình duyệt: Chrome / Windows
+IP: [Chỉ gửi theo phạm vi đã thông báo]
+Bản đồ: [Liên kết khu vực được phép chia sẻ]
+
+Mã sự kiện: LOC-XXXXXXXX
+
+Sự kiện này được gửi qua /api/location-consent ngay sau khi khách xác nhận chia sẻ dữ liệu khu vực với website và doanh nghiệp, không đợi ứng tuyển.
+
+Vị trí chính xác cần một lựa chọn đồng ý riêng nếu muốn gửi ra Telegram. Mặc định nên gửi cấp tỉnh/khu vực, tên chi nhánh và bản đồ khu vực thay vì tọa độ nhà riêng.
+Mẫu thông báo 2 – Tiếp nhận hồ sơ ứng tuyển
+RACING GARAGE BOT
+
+Ví dụ thông báo
+
+
+🛠️ HỒ SƠ ỨNG TUYỂN MỚI
+
+Mã hồ sơ: JOB-XXXXXXXX
+Chi nhánh: Nam Định
+
+Họ tên: Nguyễn Văn A
+Năm sinh: 2002
+Điện thoại: 09xxxxxxxx
+Học vấn: THPT
+Kinh nghiệm: 3 năm
+Kỹ năng: Sửa xe, lắp dàn chân, độ đèn
+Vị trí: Kỹ thuật viên xe máy
+
+--- THÔNG TIN TIẾP NHẬN ---
+Thời gian: 01/11/2026 12:48 GMT+7
+IP: [IP do server ghi nhận]
+Browser: Chrome
+OS: Windows
+Thiết bị: Desktop
+Khu vực: Nam Định
+Bản đồ: [Liên kết khu vực đã chia sẻ]
+Nguồn: Website tuyển dụng
+Trạng thái: Đã gửi hồ sơ
+
+Thông tin trình duyệt và thời gian có thể lấy từ request. IP nên ghi nhận phía Cloudflare thay vì tin giá trị do JavaScript tự gửi; Cloudflare có cung cấp header CF-Connecting-IP cho request đi qua hệ thống của họ.
+Cloudflare Fundamentals docs
+
+
+Đối với hồ sơ ứng tuyển, có thể kèm IP và thông tin chẩn đoán khi người nộp đơn đã được thông báo rõ. Không cần thu thập các loại fingerprint ẩn, cookie đăng nhập hay dữ liệu thiết bị không liên quan.
+
+Lưu ý kỹ thuật: Telegram phù hợp làm kênh thông báo và lưu lịch sử vận hành đơn giản, nhưng không phải hệ thống audit log có khả năng bảo đảm tính toàn vẹn. Nếu sau này cần truy vết đầy đủ, có thể bổ sung Cloudflare D1 để lưu sự kiện với phân quyền truy cập.
+7. Thiết kế các API
+Endpoint	Chức năng
+GET /api/branches	Trả về danh sách chi nhánh đang hoạt động
+GET /api/branch-suggestion	Gợi ý khu vực theo địa lý IP, không lưu hay gửi Telegram
+POST /api/location-consent	Tiếp nhận xác nhận chia sẻ khu vực và gửi Telegram
+GET /api/jobs?branchId=...	Lấy danh sách vị trí tuyển dụng phù hợp
+POST /api/apply	Kiểm tra form, chống spam và gửi hồ sơ đến Telegram
+
+Quy tắc triển khai:
+- Các API gửi Telegram chạy bằng Cloudflare Pages Functions.
+- Kiểm tra độ dài, định dạng và nội dung dữ liệu trước khi gửi.
+- Sử dụng Cloudflare Turnstile cho form ứng tuyển, xác thực token tại backend.
+  Cloudflare Turnstile docs+1
+- Giới hạn tần suất để tránh spam Telegram.
+- Tạo mã sự kiện riêng và tránh gửi lặp khi người dùng refresh trang.
+- Không thông báo thành công nếu Telegram trả lỗi.
+Telegram API hỗ trợ phương thức sendMessage với chat_id của nhóm.
+Telegram
+
+8. Cấu trúc source code GitHub
+racing-garage/
+├── public/
+│   ├── images/
+│   │   ├── hero/
+│   │   ├── motorcycle/
+│   │   ├── car/
+│   │   ├── parts/
+│   │   └── projects/
+│   └── favicon.svg
+│
+├── src/
+│   ├── components/
+│   │   ├── Header.tsx
+│   │   ├── Hero.tsx
+│   │   ├── VehicleGallery.tsx
+│   │   ├── PartsCatalog.tsx
+│   │   ├── BranchSelector.tsx
+│   │   ├── LocationModal.tsx
+│   │   ├── RecruitmentPopup.tsx
+│   │   └── ApplicationForm.tsx
+│   │
+│   ├── data/
+│   │   ├── branches.json
+│   │   ├── jobs.json
+│   │   ├── products.json
+│   │   └── assets-manifest.json
+│   │
+│   ├── services/
+│   │   ├── location.ts
+│   │   ├── branches.ts
+│   │   └── api.ts
+│   │
+│   ├── App.tsx
+│   └── main.tsx
+│
+├── functions/
+│   └── api/
+│       ├── branches.ts
+│       ├── branch-suggestion.ts
+│       ├── location-consent.ts
+│       ├── jobs.ts
+│       └── apply.ts
+│
+├── .gitignore
+├── .env.example
+├── package.json
+├── vite.config.ts
+└── README.md
+
+
+Cấu hình môi trường trên Cloudflare:
+TELEGRAM_BOT_TOKEN=<set-in-cloudflare-secrets>
+TELEGRAM_CHAT_ID=-5422361645
+TURNSTILE_SECRET_KEY=<set-in-cloudflare-secrets>
+
+
+Sử dụng token Telegram mới. Các giá trị bí mật không xuất hiện trong repo, build frontend hoặc phản hồi API.
+9. Quy trình GitHub → Cloudflare Pages
+1
+
+Giai đoạn 1
+
+Dựng bộ giao diện React + Vite, responsive và bộ nhận diện Racing
+
+
+2
+
+Giai đoạn 2
+
+Xây dựng danh mục xe, phụ tùng, gallery, ảnh tối ưu và nội dung
+
+
+3
+
+Giai đoạn 3
+
+Tạo dữ liệu chi nhánh, cơ chế GPS/IP gợi ý và lựa chọn thủ công
+
+
+4
+
+Giai đoạn 4
+
+Xây dựng popup tuyển dụng và form ứng tuyển theo chi nhánh
+
+
+5
+
+Giai đoạn 5
+
+Triển khai Pages Functions, Telegram, Turnstile và audit events
+
+
+6
+
+Giai đoạn 6
+
+Kiểm thử, đưa lên GitHub và kết nối Cloudflare Pages
+
+
+
+Khi kết nối repository trong Cloudflare Pages, cấu hình build dự kiến:
+Cài đặt	Giá trị
+Framework	Vite
+Production branch	main
+Build command	npm run build
+Build output directory	dist
+Serverless API	functions/
+Production domain	Domain riêng hoặc *.pages.dev
+
+Sau đó mọi lần push lên main sẽ kích hoạt triển khai phiên bản mới theo cấu hình Git integration.
+Cloudflare Pages docs+1
+
+10. Các tiêu chí nghiệm thu quan trọng
+- Website hiển thị đúng trên desktop, tablet và mobile; hình ảnh đồng nhất màu sắc, tốc độ tải tốt.
+- Header hiển thị yêu cầu chọn vị trí khi vào site, không tự ý kích hoạt GPS hoặc gửi dữ liệu vị trí trước khi có sự đồng ý.
+- Người dùng cho phép vị trí thì website chọn đúng chi nhánh theo dữ liệu thực tế; người dùng từ chối vẫn chọn thủ công được.
+- Telegram nhận thông báo chọn chi nhánh ngay sau khi người dùng đồng ý chia sẻ, không phụ thuộc việc có ứng tuyển.
+- Popup tuyển dụng hiển thị thông tin đúng chi nhánh và dữ liệu lương/phúc lợi đã cấu hình.
+- Hồ sơ ứng tuyển gửi một lần, có mã hồ sơ, thời gian phía server và thông tin chẩn đoán phù hợp.
+- Telegram không bị spam, không lộ bot token, không xuất hiện địa chỉ hoặc cơ sở giả.
+- Khi Telegram gặp lỗi, frontend hiển thị trạng thái chính xác để người dùng có thể thử lại.
+11. Những nội dung cần đưa vào cấu hình trước production
+Website có thể hoàn thiện giao diện và toàn bộ luồng demo trước, nhưng nội dung vận hành phải tách khỏi source giao diện để cập nhật dễ dàng. Phần còn thiếu gồm tên thương hiệu và logo chính thức, địa chỉ/hotline các chi nhánh thực tế, ảnh sản phẩm được quyền sử dụng, danh mục giá bán, danh sách chi nhánh đang tuyển và thông tin liên hệ của công ty.
+
+Phương án triển khai tôi đề xuất: ưu tiên một landing page React + Vite duy nhất, với catalog phụ tùng, danh sách chi nhánh và dữ liệu tuyển dụng lưu dưới dạng JSON. Dùng Cloudflare Pages Functions để tiếp nhận hai luồng Telegram riêng biệt, không cần database cho phiên bản đầu tiên. Đồng thời xây dựng cấu trúc sẵn để sau này có thể mở rộng thành website thương mại điện tử hoặc hệ thống quản lý tuyển dụng mà không phải làm lại giao diện.
+
+Đặc biệt, phần định vị nên phục vụ chọn chi nhánh trước tiên; chỉ chia sẻ ra Telegram những thông tin người dùng đã chủ động đồng ý gửi. Cách này vẫn đáp ứng mục tiêu cá nhân hóa và thông báo ngay từ lần truy cập đầu, đồng thời giảm dữ liệu không cần thiết phải quản lý.

@@ -1,0 +1,24 @@
+[
+  {
+    "files": [
+      "/images/garage-hero.webp",
+      "/images/garage-hero-mobile.webp",
+      "/images/garage-car.webp"
+    ],
+    "source": "OpenAI image generation, created for this project 2026-11-01",
+    "rights": "AI-generated concept asset; no third-party photograph used",
+    "description": "Graphite widebody sports car and motorcycle in orange-lit garage. Concept only, not a customer project."
+  },
+  {
+    "files": ["/images/garage-moto.webp"],
+    "source": "OpenAI image generation, created for this project 2026-11-01",
+    "rights": "AI-generated concept asset; no third-party photograph used",
+    "description": "Custom street motorcycle concept. Not a real completed build."
+  },
+  {
+    "files": ["src/components/PartArt.tsx", "/favicon.svg"],
+    "source": "Original code-drawn vector illustrations for this project",
+    "rights": "Original project artwork",
+    "description": "Generic illustrative parts; no product brand or compatibility certification implied."
+  }
+]

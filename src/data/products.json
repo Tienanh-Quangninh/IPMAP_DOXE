@@ -1,0 +1,50 @@
+[
+  {
+    "id": "suspension",
+    "name": "Phuộc bình dầu thể thao",
+    "category": "Hệ thống treo",
+    "vehicle": "motorcycle",
+    "brand": "Chưa cấu hình",
+    "models": ["Vario", "SH", "Exciter"],
+    "description": "Gợi ý nâng cấp hệ thống treo. Cần xác nhận mã phụ tùng tương thích và tư vấn kỹ thuật trước khi lắp đặt.",
+    "image": "suspension",
+    "tag": "KIỂM SOÁT TỐT HƠN",
+    "price": null
+  },
+  {
+    "id": "brake",
+    "name": "Bộ phanh hiệu suất cao",
+    "category": "Hệ thống phanh",
+    "vehicle": "motorcycle",
+    "brand": "Chưa cấu hình",
+    "models": ["Winner X", "Exciter", "Vario"],
+    "description": "Khám phá cấu hình heo phanh và đĩa phanh theo từng dòng xe. Sản phẩm minh họa, chưa mở bán.",
+    "image": "brake",
+    "tag": "CẢM GIÁC CHÍNH XÁC",
+    "price": null
+  },
+  {
+    "id": "wheel",
+    "name": "Mâm hợp kim đa chấu",
+    "category": "Mâm & lốp",
+    "vehicle": "car",
+    "brand": "Chưa cấu hình",
+    "models": ["Civic", "Mazda 3", "K3"],
+    "description": "Hoàn thiện dáng xe với mâm hợp kim. Kích thước, tải trọng và thông số lắp đặt cần được kiểm tra theo xe thực tế.",
+    "image": "wheel",
+    "tag": "DẤU ẤN KHÁC BIỆT",
+    "price": null
+  },
+  {
+    "id": "exhaust",
+    "name": "Hệ thống xả thể thao",
+    "category": "Hệ thống xả",
+    "vehicle": "car",
+    "brand": "Chưa cấu hình",
+    "models": ["Civic", "Mazda 3"],
+    "description": "Tư vấn cấu hình hệ thống xả phù hợp mẫu xe và yêu cầu sử dụng. Kiểm tra quy định hiện hành trước khi nâng cấp.",
+    "image": "exhaust",
+    "tag": "HOÀN THIỆN CẤU HÌNH",
+    "price": null
+  }
+]
