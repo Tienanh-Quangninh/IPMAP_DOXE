@@ -224,10 +224,6 @@ export default function ApplicationForm({
               </label>
             </div>
             {canApply && <Turnstile action="apply" onToken={setToken} resetKey={reset} />}
-            <p className="micro">
-              Hồ sơ gửi qua Telegram kèm thời gian, IP, trình duyệt và tọa độ GPS nếu bạn đã cấp
-              quyền chia sẻ vị trí.
-            </p>
             {error && (
               <p className="status-message" role="alert">
                 {error}

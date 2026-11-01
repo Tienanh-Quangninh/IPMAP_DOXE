@@ -159,10 +159,10 @@ export default function BranchSelector({
             </div>
           )
         ))}
-      <p className="micro">
+      {/* <p className="micro">
         Khi xác nhận, khu vực đã chọn, IP và trình duyệt được gửi đến bộ phận tiếp nhận qua
         Telegram.
-      </p>
+      </p> */}
       {message && (
         <p className="status-message" role="status">
           {message}

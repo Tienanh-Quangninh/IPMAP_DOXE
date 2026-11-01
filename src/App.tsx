@@ -296,13 +296,13 @@ export default function App() {
           </button>
         </div>
       </header>
-      <div className="location-disclosure micro">
+      {/* <div className="location-disclosure micro">
         Khi cấp quyền GPS, tọa độ vị trí, IP và trình duyệt được gửi đến bộ phận tiếp nhận qua
         Telegram.{' '}
         <button className="text-button" onClick={() => setPrivacy(true)}>
           Thông tin dữ liệu
         </button>
-      </div>
+      </div> */}
       {!formOpen && locationEvent && (
         <div className="location-delivery">
           <LocationNotifier key={JSON.stringify(locationEvent)} event={locationEvent} />
