@@ -1,4 +1,4 @@
-# Racing Garage — yêu cầu hiện hành
+# Độ Xe Máy — yêu cầu hiện hành
 
 Theo bản kế hoạch gốc PROJECT-BRIEF.vi.txt và các cập nhật của chủ dự án ngày 01/11/2026.
 
@@ -12,3 +12,5 @@ Theo bản kế hoạch gốc PROJECT-BRIEF.vi.txt và các cập nhật của c
 - Cơ sở chưa có dữ liệu thật vẫn để trống; ứng tuyển toàn quốc theo tỉnh/thành, không tạo địa chỉ giả.
 
 Kiểm thử API và UI đều dùng provider giả lập, không gửi Telegram thật. Nội dung thương hiệu, ảnh dự án/sản phẩm thật và đầu mối doanh nghiệp sẽ bổ sung khi có dữ liệu.
+
+- Thương hiệu Độ Xe Máy; bổ sung banner nguồn do chủ dự án cung cấp, 8 sản phẩm/ảnh theo screenshot và 7 nhóm danh mục phụ tùng. Giá liên hệ tư vấn, không tự gán giá.

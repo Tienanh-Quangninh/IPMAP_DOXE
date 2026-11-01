@@ -24,7 +24,9 @@ import BranchSelector from './components/BranchSelector';
 import ApplicationForm from './components/ApplicationForm';
 import LocationNotifier, { type LocationEvent } from './components/LocationNotifier';
 import Modal from './components/Modal';
-import PartArt from './components/PartArt';
+import ProductImage from './components/ProductImage';
+import BrandLogo from './components/BrandLogo';
+import categories from './data/categories.json';
 import productsData from './data/products.json';
 import branchData from './data/branches.json';
 import jobsData from './data/jobs.json';
@@ -243,17 +245,7 @@ export default function App() {
         </span>
       </div>
       <header className="header">
-        <a href="#" className="logo" aria-label="Racing Garage trang chủ">
-          <span className="logo-mark">
-            R<span>G</span>
-          </span>
-          <span>
-            RACING
-            <span className="logo-line">
-              GARAGE<span className="logo-dot">®</span>
-            </span>
-          </span>
-        </a>
+        <BrandLogo />
         <nav className={menu ? 'nav nav-open' : 'nav'} aria-label="Điều hướng chính">
           {[
             ['Khám phá', '#discover'],
@@ -492,6 +484,27 @@ export default function App() {
             </div>
           </div>
         </section>
+        <section className="collection-banner" aria-label="Bộ sưu tập phụ tùng xe máy">
+          <a href="#parts">
+            <img
+              src="/images/collection/banner-collection.webp"
+              alt="Phụ tùng xe máy Honda, Suzuki, Kawasaki — bộ sưu tập Độ Xe Máy"
+              width="1920"
+              height="560"
+              loading="lazy"
+            />
+            <div className="collection-caption">
+              <div>
+                <p className="eyebrow orange">ĐỘ XE MÁY / BỘ SƯU TẬP PHỤ TÙNG</p>
+                <h2>TỪ CHI TIẾT. ĐẾN CHẤT XE.</h2>
+              </div>
+              <span>
+                Khám phá danh mục
+                <ArrowUpRight size={19} />
+              </span>
+            </div>
+          </a>
+        </section>
         <section className="section parts-section" id="parts">
           <div className="section-intro">
             <div>
@@ -505,8 +518,42 @@ export default function App() {
             <div className="section-description">
               <p>Khám phá nhóm phụ tùng cho hành trình nâng cấp tiếp theo.</p>
               <p className="micro">
-                Danh mục minh họa · Chưa mở bán · Giá và thương hiệu sẽ được cập nhật.
+                Sản phẩm theo danh mục tham khảo · Liên hệ tư vấn giá và mã phụ tùng phù hợp.
               </p>
+            </div>
+          </div>
+          <div className="category-navigation" aria-label="Danh mục phụ tùng xe máy">
+            <p className="eyebrow">
+              <Bike size={16} /> PHỤ TÙNG XE MÁY
+            </p>
+            <div className="category-options">
+              <button
+                className={category === 'all' ? 'active' : ''}
+                aria-pressed={category === 'all'}
+                onClick={() => {
+                  setCategory('all');
+                  setVehicle('all');
+                  setModel('all');
+                  setBrand('all');
+                }}
+              >
+                Tất cả phụ tùng
+              </button>
+              {categories.map((c) => (
+                <button
+                  key={c}
+                  className={category === c ? 'active' : ''}
+                  aria-pressed={category === c}
+                  onClick={() => {
+                    setCategory(c);
+                    setVehicle('motorcycle');
+                    setModel('all');
+                    setBrand('all');
+                  }}
+                >
+                  {c}
+                </button>
+              ))}
             </div>
           </div>
           <div className="catalog-toolbar">
@@ -545,7 +592,7 @@ export default function App() {
                 Nhóm phụ tùng
                 <select value={category} onChange={(e) => setCategory(e.target.value)}>
                   <option value="all">Tất cả nhóm</option>
-                  {[...new Set(products.map((p) => p.category))].map((c) => (
+                  {[...new Set([...categories, ...products.map((p) => p.category)])].map((c) => (
                     <option key={c}>{c}</option>
                   ))}
                 </select>
@@ -591,10 +638,12 @@ export default function App() {
           <div className="products-grid">
             {shownProducts.map((p, i) => (
               <button className="product-card" key={p.id} onClick={() => setProduct(p)}>
-                <div className="product-visual">
-                  <span className="product-number">0{i + 1}</span>
+                <div
+                  className={`product-visual ${p.image.startsWith('/') ? 'product-visual-photo' : ''}`}
+                >
+                  <span className="product-number">{String(i + 1).padStart(2, '0')}</span>
                   <span className="product-kind">{p.vehicle === 'car' ? 'Ô TÔ' : 'XE MÁY'}</span>
-                  <PartArt type={p.image} />
+                  <ProductImage product={p} />
                   <span className="product-plus">
                     <Plus size={18} />
                   </span>
@@ -602,9 +651,9 @@ export default function App() {
                 <div className="product-text">
                   <span className="eyebrow orange">{p.category}</span>
                   <h3>{p.name}</h3>
-                  <p>{p.models.join(' / ')}</p>
+                  <p>{p.models.join(' / ') || 'Phụ kiện người lái'}</p>
                   <div>
-                    <span>Xem cấu hình</span>
+                    <span>{p.image.startsWith('/') ? 'Liên hệ tư vấn' : 'Xem cấu hình'}</span>
                     <ArrowUpRight size={17} />
                   </div>
                 </div>
@@ -798,7 +847,7 @@ export default function App() {
         </section>
         <section className="careers-section" id="careers">
           <div className="careers-art" aria-hidden="true">
-            R<span>G</span>
+            Đ<span>X</span>
           </div>
           <div className="careers-content">
             <p className="eyebrow">06 / JOIN THE CREW</p>
@@ -854,7 +903,7 @@ export default function App() {
               BUILT AS A TEAM.
             </span>
             <span className="career-stamp">
-              RACING GARAGE
+              ĐỘ XE MÁY
               <br />
               CREW DEPARTMENT ↗
             </span>
@@ -906,14 +955,7 @@ export default function App() {
       <footer className="footer">
         <div className="footer-main">
           <div>
-            <a href="#" className="logo">
-              <span className="logo-mark">
-                R<span>G</span>
-              </span>
-              <span>
-                RACING<span className="logo-line">GARAGE®</span>
-              </span>
-            </a>
+            <BrandLogo />
             <p>
               Đam mê không có giới hạn.
               <br />
@@ -944,17 +986,17 @@ export default function App() {
           <div className="footer-note">
             <span className="eyebrow orange">BUILT TO STAND OUT.</span>
             <p>
-              Phiên bản giới thiệu.
+              Phụ tùng & đồ chơi xe máy.
               <br />
-              Thương hiệu, cơ sở và danh mục
+              Tư vấn phụ tùng phù hợp
               <br />
-              đang chờ thông tin chính thức.
+              với từng dòng xe của bạn.
             </p>
             <span className="footer-country">DESIGNED FOR VIETNAM ↗</span>
           </div>
         </div>
         <div className="footer-bottom">
-          <span>© {new Date().getFullYear()} RACING GARAGE · TÊN THƯƠNG HIỆU TẠM</span>
+          <span>© {new Date().getFullYear()} ĐỘ XE MÁY</span>
           <button onClick={() => setPrivacy(true)}>Dữ liệu & quyền riêng tư</button>
           <a href="#">VỀ ĐẦU TRANG ↑</a>
         </div>
@@ -997,16 +1039,20 @@ export default function App() {
       {product && (
         <Modal title="Chi tiết phụ tùng" onClose={closeProduct}>
           <div className="modal-product">
-            <PartArt type={product.image} />
+            <ProductImage product={product} />
           </div>
-          <span className="eyebrow orange">{product.category} / MINH HỌA</span>
+          <span className="eyebrow orange">
+            {product.category} / {product.image.startsWith('/') ? 'SẢN PHẨM' : 'MINH HỌA'}
+          </span>
           <h2>{product.name.toUpperCase()}</h2>
           <p className="muted">{product.description}</p>
           <div className="product-detail">
             <span>Mẫu xe tham khảo</span>
-            <strong>{product.models.join(' / ')}</strong>
-            <span>Hãng & giá bán</span>
-            <strong>Đang cập nhật</strong>
+            <strong>{product.models.join(' / ') || 'Phụ kiện người lái'}</strong>
+            <span>Hãng</span>
+            <strong>{product.brand}</strong>
+            <span>Giá bán</span>
+            <strong>Liên hệ tư vấn</strong>
             <span>Tình trạng</span>
             <strong>Chưa mở bán</strong>
           </div>

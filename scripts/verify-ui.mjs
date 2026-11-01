@@ -144,9 +144,19 @@ try {
     /Be Vietnam Pro/,
   );
   await denied.page.locator('#parts').getByRole('button', { name: 'Xe máy', exact: true }).click();
-  await expect(denied.page.locator('.product-card')).toHaveCount(2);
+  await expect(denied.page.locator('.product-card')).toHaveCount(10);
+  await expect(
+    denied.page.getByRole('link', { name: 'Độ Xe Máy trang chủ' }).first(),
+  ).toBeVisible();
+  await expect(denied.page.locator('.collection-banner img')).toBeVisible();
+  await denied.page.getByRole('button', { name: 'Hệ thống điện', exact: true }).click();
+  await expect(denied.page.locator('.product-card')).toHaveCount(1);
+  await expect(denied.page.locator('.product-card')).toContainText('Cuộn điện ZX10R');
+  await denied.page.getByRole('button', { name: 'Tất cả phụ tùng', exact: true }).click();
+  await expect(denied.page.locator('.product-card')).toHaveCount(12);
   await denied.page.locator('.product-card').first().click();
   await expect(denied.page.getByRole('dialog')).toBeVisible();
+  await expect(denied.page.locator('.modal-product img')).toHaveCount(1);
   await denied.page.keyboard.press('Escape');
   for (const width of [360, 390, 768, 1440]) {
     await denied.page.setViewportSize({ width, height: 844 });

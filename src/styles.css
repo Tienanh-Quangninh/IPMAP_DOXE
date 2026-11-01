@@ -2505,3 +2505,225 @@ h1 > span:not(.orange) {
 .location-notifier .micro {
   font-size: 10px;
 }
+
+/* Độ Xe Máy brand and reference catalog */
+.brand-monogram {
+  font-size: 32px !important;
+  letter-spacing: -4px;
+  line-height: 1.2;
+  padding-right: 5px;
+}
+.brand-title {
+  display: block;
+  font-size: 19px;
+  font-style: normal;
+  font-weight: 900;
+  letter-spacing: -0.8px;
+  white-space: nowrap;
+}
+.brand-subtitle {
+  display: block;
+  margin-top: 7px;
+  font-size: 7px;
+  letter-spacing: 1.4px;
+  font-style: normal;
+  color: #989da5;
+  white-space: nowrap;
+}
+.collection-banner {
+  padding: 0 5.3vw 75px;
+}
+.collection-banner > a {
+  display: block;
+  border: 1px solid var(--line);
+  background: #111317;
+  overflow: hidden;
+}
+.collection-banner img {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+.collection-caption {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 25px;
+  padding: 25px 28px;
+  border-top: 1px solid var(--line);
+}
+.collection-caption .eyebrow {
+  font-size: 8px;
+  margin-bottom: 10px;
+}
+.collection-caption h2 {
+  font-size: 28px;
+  letter-spacing: -1px;
+}
+.collection-caption > span {
+  display: flex;
+  align-items: center;
+  gap: 22px;
+  font-size: 11px;
+  white-space: nowrap;
+}
+.collection-caption > span svg {
+  color: var(--orange);
+}
+.category-navigation {
+  border: 1px solid var(--line);
+  background: #12151a;
+  padding: 20px;
+  margin-bottom: 25px;
+}
+.category-navigation > .eyebrow {
+  font-size: 10px;
+  margin-bottom: 16px;
+  color: #d9dce1;
+}
+.category-navigation > .eyebrow svg {
+  color: var(--orange);
+}
+.category-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 9px;
+}
+.category-options button {
+  border: 1px solid #ffffff20;
+  padding: 11px 13px;
+  background: #0b0e12;
+  color: #9399a3;
+  font-size: 10px;
+  white-space: nowrap;
+}
+.category-options button.active,
+.category-options button:hover {
+  color: #fff;
+  border-color: var(--orange);
+  background: #ff5a1f15;
+}
+.product-card {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+}
+.product-visual {
+  flex-shrink: 0;
+  width: 100%;
+}
+.product-visual-photo {
+  height: auto;
+  aspect-ratio: 1;
+  background: #f8f8f8;
+}
+.product-photo {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+}
+.product-visual-photo > .product-photo {
+  position: absolute;
+  inset: 0;
+  padding: 8px;
+  transition: transform 0.3s;
+}
+.product-card:hover .product-photo {
+  transform: scale(1.025);
+}
+.product-visual-photo .product-number {
+  z-index: 1;
+  color: #555;
+  background: #ffffffdc;
+  padding: 4px;
+}
+.product-visual-photo .product-kind {
+  z-index: 1;
+  color: #333;
+  background: #ffffffdc;
+  border-color: #ccc;
+}
+.product-visual-photo .product-plus {
+  color: #fff;
+  background: var(--orange);
+  border-color: var(--orange);
+  z-index: 1;
+}
+.product-text {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+.product-text > p {
+  padding-bottom: 12px;
+}
+.product-text > div {
+  margin-top: auto;
+}
+.modal-product:has(.product-photo) {
+  background: #f8f8f8;
+}
+@media (max-width: 800px) {
+  .collection-banner {
+    padding: 0 4vw 60px;
+  }
+  .collection-caption {
+    padding: 22px;
+  }
+  .collection-caption h2 {
+    font-size: 24px;
+  }
+}
+@media (max-width: 540px) {
+  .brand-title {
+    font-size: 15px;
+  }
+  .brand-subtitle {
+    font-size: 6px;
+    letter-spacing: 0.8px;
+    margin-top: 6px;
+  }
+  .brand-monogram {
+    font-size: 26px !important;
+    letter-spacing: -3px;
+  }
+  .collection-banner {
+    padding: 0 22px 45px;
+  }
+  .collection-caption {
+    padding: 20px;
+    display: block;
+  }
+  .collection-caption h2 {
+    font-size: 23px;
+    line-height: 1.35;
+  }
+  .collection-caption > span {
+    margin-top: 16px;
+    font-size: 10px;
+    justify-content: space-between;
+  }
+  .category-navigation {
+    padding: 16px 12px;
+  }
+  .category-navigation > .eyebrow {
+    font-size: 8px;
+  }
+  .category-options {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    padding-bottom: 7px;
+    scrollbar-width: thin;
+  }
+  .category-options button {
+    font-size: 9px;
+    padding: 10px;
+  }
+  .product-text h3 {
+    font-size: 11px;
+  }
+  .product-text p {
+    font-size: 8px;
+  }
+}

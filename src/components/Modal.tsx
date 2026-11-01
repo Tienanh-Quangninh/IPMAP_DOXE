@@ -63,7 +63,7 @@ export default function Modal({
         aria-label={title}
       >
         <div className="modal-top">
-          <span className="eyebrow">RACING GARAGE / {title}</span>
+          <span className="eyebrow">ĐỘ XE MÁY / {title}</span>
           <button className="icon-button" onClick={onClose} aria-label="Đóng hộp thoại">
             <X size={22} />
           </button>

@@ -26,5 +26,67 @@
     "source": "Original 1200x630 social card rendered by scripts/generate-social.mjs, using existing AI-generated garage concept and Be Vietnam Pro",
     "rights": "Original project layout; concept artwork provenance above; font SIL OFL 1.1 in /licenses/be-vietnam-pro-OFL.txt",
     "description": "Open Graph PNG for Facebook/Zalo sharing. Not an actual customer project."
+  },
+  {
+    "files": ["/images/collection/banner-collection.webp"],
+    "source": "https://cdn.doxemay.com/2024/09/banner-collection.webp",
+    "rights": "User-supplied source URL and requested use; original source ownership retained.",
+    "description": "Motorcycle parts collection banner supplied by the user, original image preserved."
+  },
+  {
+    "files": ["/images/products/can-keo-con-sonic-winner-gtr-cbr.jpg"],
+    "source": "https://cdn.doxemay.com/2024/05/Can-keo-con-Sonic-Winner-GTR-CBR-3-300x300.jpg",
+    "sourcePage": "https://doxemay.com/can-keo-con-sonic-winner-gtr-cbr/",
+    "rights": "Product image from user-requested reference catalog doxemay.com; original marks and source ownership retained.",
+    "description": "Exact product reference matching the screenshot supplied by the user."
+  },
+  {
+    "files": ["/images/products/de-truoc-xanh-la-shogun-axelo-125.jpg"],
+    "source": "https://cdn.doxemay.com/2024/05/De-truoc-xanh-la-Shogun-Axelo-125-53111B10J00NPZ5-300x300.jpg",
+    "sourcePage": "https://doxemay.com/de-truoc-xanh-la-shogun-axelo-125/",
+    "rights": "Product image from user-requested reference catalog doxemay.com; original marks and source ownership retained.",
+    "description": "Exact product reference matching the screenshot supplied by the user."
+  },
+  {
+    "files": ["/images/products/cuon-dien-zx10r-2006-2007.jpg"],
+    "source": "https://cdn.doxemay.com/2024/10/QAWG23A00925-247x296.jpg",
+    "sourcePage": "https://doxemay.com/cuon-dien-zx10r-2006-2007/",
+    "rights": "Product image from user-requested reference catalog doxemay.com; original marks and source ownership retained.",
+    "description": "Exact product reference matching the screenshot supplied by the user."
+  },
+  {
+    "files": ["/images/products/gang-tay-chong-nang-xo-ngon-han-quoc.jpg"],
+    "source": "https://cdn.doxemay.com/2024/05/KnMbsCuo-gang-tay-chong-nang-xo-ngon-han-quoc-643-slide-products-59c21f6aeeeb0-300x300.jpg",
+    "sourcePage": "https://doxemay.com/gang-tay-chong-nang-xo-ngon-han-quoc/",
+    "rights": "Product image from user-requested reference catalog doxemay.com; original marks and source ownership retained.",
+    "description": "Exact product reference matching the screenshot supplied by the user."
+  },
+  {
+    "files": ["/images/products/lo-xo-ta-den-satria-raider-gsx-bandit-axelo.jpg"],
+    "source": "https://cdn.doxemay.com/2024/05/Lo-xo-ta-den-Satria-Raider-GSX-Bandit-Axelo-12663-47E50-000-300x300.jpg",
+    "sourcePage": "https://doxemay.com/lo-xo-ta-den-satria-raider-gsx-bandit-axelo/",
+    "rights": "Product image from user-requested reference catalog doxemay.com; original marks and source ownership retained.",
+    "description": "Exact product reference matching the screenshot supplied by the user."
+  },
+  {
+    "files": ["/images/products/binh-xang-rr150.jpg"],
+    "source": "https://cdn.doxemay.com/2024/10/QA00182_1-247x296.jpg",
+    "sourcePage": "https://doxemay.com/binh-xang-rr150/",
+    "rights": "Product image from user-requested reference catalog doxemay.com; original marks and source ownership retained.",
+    "description": "Exact product reference matching the screenshot supplied by the user."
+  },
+  {
+    "files": ["/images/products/linh-kien-bo-noi-con-suzuki-v-strom-250-chinh-hang-tuy-chon.jpg"],
+    "source": "https://cdn.doxemay.com/2024/10/O1CN01ZiAdYU2IYX65pacaD_906119298-247x296.jpg",
+    "sourcePage": "https://doxemay.com/linh-kien-bo-noi-con-suzuki-v-strom-250-chinh-hang-tuy-chon/",
+    "rights": "Product image from user-requested reference catalog doxemay.com; original marks and source ownership retained.",
+    "description": "Exact product reference matching the screenshot supplied by the user."
+  },
+  {
+    "files": ["/images/products/gia-do-dau-den-sung-trau-gsx-r1000-2005-2006.jpg"],
+    "source": "https://cdn.doxemay.com/2024/10/QAS00091-247x296.jpg",
+    "sourcePage": "https://doxemay.com/gia-do-dau-den-sung-trau-gsx-r1000-2005-2006/",
+    "rights": "Product image from user-requested reference catalog doxemay.com; original marks and source ownership retained.",
+    "description": "Exact product reference matching the screenshot supplied by the user."
   }
 ]

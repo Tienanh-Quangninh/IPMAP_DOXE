@@ -1,4 +1,4 @@
-# Racing Garage · IPMAP_DOXE
+# Độ Xe Máy · IPMAP_DOXE
 
 React + Vite + TypeScript, Cloudflare Pages Functions, Telegram và Turnstile. Backend không dùng database, không cần D1 hay binding EVENT_STORE.
 
@@ -81,3 +81,7 @@ Bản kế hoạch gốc trong `PROJECT-BRIEF.vi.txt`; yêu cầu cập nhật �
 - [Turnstile server validation](https://developers.cloudflare.com/turnstile/get-started/server-side-validation/)
 - [Telegram sendMessage](https://core.telegram.org/bots/api#sendmessage)
 - [Google Maps URLs](https://developers.google.com/maps/documentation/urls/get-started)
+
+## Cập nhật thương hiệu và catalog
+
+Thương hiệu hiện hành: **Độ Xe Máy**, áp dụng header/footer, hộp thoại, favicon và SEO/social preview. Banner bộ sưu tập và 8 ảnh sản phẩm tải từ các URL doxemay.com theo yêu cầu của chủ dự án, giữ hình gốc và nguồn trong assets-manifest. Danh mục phụ tùng theo hình tham khảo nằm trong categories.json. Giá của các sản phẩm bổ sung để liên hệ tư vấn; không tự gán giá hoặc tuyên bố tồn kho.
