@@ -8,11 +8,12 @@ import {
   route,
   validateApplication,
   validateLocation,
+  readPosition,
 } from '../shared/server';
 import type { Branch, Env, Job } from '../shared/types';
 import { onRequest as getBranches } from '../functions/api/branches';
 import { onRequest as suggestion } from '../functions/api/branch-suggestion';
-import { branchGoogleMaps, googleMapsSearch } from '../shared/maps';
+import { branchGoogleMaps, googleMapsSearch, sharedLocationMessage } from '../shared/maps';
 import { onRequest as applyRoute } from '../functions/api/apply';
 import { onRequest as locationRoute } from '../functions/api/location-consent';
 
@@ -152,7 +153,7 @@ test('JSON reader rejects cross-site requests and oversized bodies', async () =>
   );
 });
 
-test('location requires explicit consent, rejects exact coordinates, supports prior province names', () => {
+test('location validates shared GPS coordinates and explicit sharing action, supports prior province names', () => {
   const location = {
     eventId: crypto.randomUUID(),
     branchId: branch.id,
@@ -347,6 +348,7 @@ test('location can send coarse region without a branch or database and includes 
     branchId: null,
     province: 'Nam Định',
     source: 'gps',
+    position: { latitude: 21.1234567, longitude: 107.7654321, accuracy: 8.5 },
     consent: true,
     turnstileToken: 'mock',
   };
@@ -358,4 +360,76 @@ test('location can send coarse region without a branch or database and includes 
   assert.match(message, /www.google.com\/maps/);
   assert.throws(() => validateLocation({ ...body, latitude: 20 }), ApiError);
   assert.equal(validateLocation({ ...body, province: null }).province, null);
+});
+
+test('shared position validation rejects partial, malformed and out-of-range coordinates', () => {
+  const point = { latitude: 21.1234567, longitude: 107.7654321, accuracy: 8.5 };
+  assert.deepEqual(readPosition(point), point);
+  for (const invalid of [
+    { latitude: 91, longitude: 0 },
+    { latitude: 0, longitude: -181 },
+    { latitude: '21', longitude: 107 },
+    { latitude: NaN, longitude: 0 },
+    { latitude: 0, longitude: Infinity },
+    { latitude: 0 },
+    { latitude: 0, longitude: 0, accuracy: -1 },
+    [21, 107],
+  ])
+    assert.throws(() => readPosition(invalid), ApiError);
+  const msg = sharedLocationMessage(point, 'Ninh Bình');
+  const link = msg.match(/https:\/\/www.google.com\/maps\/search\/[^\s]+/)?.[0];
+  assert.equal(new URL(link!).searchParams.get('query'), '21.1234567,107.7654321');
+  assert.match(msg, /Vĩ độ: 21.1234567/);
+  assert.match(msg, /Kinh độ: 107.7654321/);
+  assert.match(msg, /±8.5 m/);
+  assert.doesNotMatch(sharedLocationMessage(null, null), /https:/);
+});
+
+test('both Telegram notifications pin visitor GPS independently of the selected province or branch', async (t) => {
+  const messages: string[] = [];
+  t.mock.method(globalThis, 'fetch', async (url: string | URL | Request, options?: RequestInit) => {
+    if (String(url).includes('siteverify')) {
+      const data = new URLSearchParams(String(options?.body));
+      return Response.json({
+        success: true,
+        hostname: 'garage.example',
+        action: data.get('response') === 'location-token' ? 'location' : 'apply',
+      });
+    }
+    messages.push(JSON.parse(String(options?.body)).text);
+    return Response.json({ ok: true });
+  });
+  const position = { latitude: 21.1234567, longitude: 107.7654321, accuracy: 8.5 };
+  const environment = env();
+  const loc = {
+    eventId: crypto.randomUUID(),
+    branchId: null,
+    province: null,
+    source: 'gps',
+    consent: true,
+    position,
+    turnstileToken: 'location-token',
+  };
+  assert.equal((await locationRoute({ request: request(loc), env: environment })).status, 200);
+  const body = {
+    ...valid(),
+    branchId: null,
+    jobId: 'customer-support',
+    province: 'Ninh Bình',
+    position,
+    locationShared: true,
+  };
+  assert.equal((await applyRoute({ request: request(body), env: environment })).status, 200);
+  for (const message of messages) {
+    const link = message.match(/Google Maps vị trí đã chia sẻ: (https:[^\s]+)/)?.[1];
+    assert.equal(new URL(link!).searchParams.get('query'), '21.1234567,107.7654321');
+    assert.match(message, /Vĩ độ: 21.1234567/);
+    assert.match(message, /Kinh độ: 107.7654321/);
+  }
+  assert.throws(() => validateApplication({ ...body, locationShared: false }), ApiError);
+  assert.throws(() => validateLocation({ ...loc, position: null }), ApiError);
+  assert.throws(
+    () => validateLocation({ ...loc, province: 'Ninh Bình', source: 'manual' }),
+    ApiError,
+  );
 });

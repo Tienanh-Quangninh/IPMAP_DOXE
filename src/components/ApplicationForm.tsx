@@ -6,12 +6,14 @@ import type { Branch, Job } from '../types';
 import { ApiError } from '../services/api';
 import { eventIdFor, sendEvent } from '../services/events';
 import provinces from '../data/provinces.json';
+import type { SharedPosition } from '../services/location';
 import LocationNotifier, { type LocationEvent } from './LocationNotifier';
 export default function ApplicationForm({
   branch,
   job: initialJob,
   availableJobs = [],
   locationEvent,
+  sharedPosition = null,
   initialProvince = '',
   onClose,
 }: {
@@ -19,6 +21,7 @@ export default function ApplicationForm({
   job: Job | null;
   availableJobs?: Job[];
   locationEvent?: LocationEvent | null;
+  sharedPosition?: SharedPosition | null;
   initialProvince?: string;
   onClose: () => void;
 }) {
@@ -55,6 +58,8 @@ export default function ApplicationForm({
       skills: d.get('skills'),
       vehicle: job.vehicle === 'any' ? d.get('vehicle') : job.vehicle,
       submitted: true,
+      position: sharedPosition,
+      locationShared: !!sharedPosition,
       website: d.get('website'),
     };
     let id = '';
@@ -98,7 +103,9 @@ export default function ApplicationForm({
               ? `${job.title} · ${branch?.name || 'Tiếp nhận toàn quốc'}`
               : 'Xem trước biểu mẫu. Chưa có vị trí tuyển dụng được xác minh, hiện chưa tiếp nhận hồ sơ.'}
           </p>
-          {locationEvent && <LocationNotifier event={locationEvent} />}
+          {locationEvent && (
+            <LocationNotifier key={JSON.stringify(locationEvent)} event={locationEvent} />
+          )}
           <form onSubmit={submit}>
             {availableJobs.length > 1 && (
               <label className="field">
@@ -218,8 +225,8 @@ export default function ApplicationForm({
             </div>
             {canApply && <Turnstile action="apply" onToken={setToken} resetKey={reset} />}
             <p className="micro">
-              Hồ sơ gửi đến bộ phận tuyển dụng qua Telegram, kèm thời gian, IP và thông tin trình
-              duyệt.
+              Hồ sơ gửi qua Telegram kèm thời gian, IP, trình duyệt và tọa độ GPS nếu bạn đã cấp
+              quyền chia sẻ vị trí.
             </p>
             {error && (
               <p className="status-message" role="alert">

@@ -1,8 +1,9 @@
-type Coordinates = { latitude: number; longitude: number };
+import type { SharedPosition as Coordinates } from '../../shared/types';
+export type { SharedPosition } from '../../shared/types';
 let pending: Promise<Coordinates> | null = null;
 
 // Share the in-flight request across React StrictMode's repeated effect setup.
-// Coordinates stay in memory and are never stored or sent to the server.
+// Coordinates stay in memory; share only after the browser grants GPS permission.
 export function requestBrowserLocation(): Promise<Coordinates> {
   if (pending) return pending;
   pending = new Promise<Coordinates>((resolve, reject) => {
@@ -11,9 +12,14 @@ export function requestBrowserLocation(): Promise<Coordinates> {
       return;
     }
     navigator.geolocation.getCurrentPosition(
-      ({ coords }) => resolve({ latitude: coords.latitude, longitude: coords.longitude }),
+      ({ coords }) =>
+        resolve({
+          latitude: coords.latitude,
+          longitude: coords.longitude,
+          ...(Number.isFinite(coords.accuracy) ? { accuracy: coords.accuracy } : {}),
+        }),
       reject,
-      { enableHighAccuracy: false, timeout: 10000, maximumAge: 60000 },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 },
     );
   }).finally(() => {
     pending = null;

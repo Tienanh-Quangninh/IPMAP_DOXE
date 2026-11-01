@@ -4,13 +4,12 @@ import Modal from './Modal';
 import provinces from '../data/provinces.json';
 import type { Branch } from '../types';
 import { api, nearestBranch } from '../services/api';
-import { requestBrowserLocation } from '../services/location';
+import { requestBrowserLocation, type SharedPosition } from '../services/location';
 
 export default function BranchSelector({
   branches,
   initialProvince,
   initialBranchId = '',
-  initialSource = 'manual',
   onSelect,
   onGpsResolved,
   onClose,
@@ -18,14 +17,17 @@ export default function BranchSelector({
   branches: Branch[];
   initialProvince: string;
   initialBranchId?: string;
-  initialSource?: 'gps' | 'manual';
-  onSelect: (province: string, branch: Branch | null, source?: 'gps' | 'manual') => void;
-  onGpsResolved?: (result: 'granted' | 'denied') => void;
+  onSelect: (
+    province: string,
+    branch: Branch | null,
+    source?: 'gps' | 'manual',
+    position?: SharedPosition | null,
+  ) => void;
+  onGpsResolved?: (result: 'granted' | 'denied', position?: SharedPosition | null) => void;
   onClose: () => void;
 }) {
   const [province, setProvince] = useState(initialProvince),
-    [branchId, setBranchId] = useState(initialBranchId),
-    [source, setSource] = useState<'gps' | 'manual'>(initialSource);
+    [branchId, setBranchId] = useState(initialBranchId);
   const [message, setMessage] = useState(''),
     [busy, setBusy] = useState(false);
   const matches = branches.filter((b) => b.province === province);
@@ -40,14 +42,13 @@ export default function BranchSelector({
       if (nearest) {
         setProvince(nearest.province);
         setBranchId(nearest.id);
-        setSource('gps');
-        onSelect(nearest.province, nearest, 'gps');
+        onSelect(nearest.province, nearest, 'gps', coords);
         onClose();
       } else if (province) {
-        onSelect(province, null, 'gps');
+        onSelect(province, null, 'gps', coords);
         onClose();
       } else {
-        onGpsResolved?.('granted');
+        onGpsResolved?.('granted', coords);
         onClose();
       }
     } catch {
@@ -67,7 +68,6 @@ export default function BranchSelector({
       if (r.province) {
         setProvince(r.province);
         setBranchId('');
-        setSource('manual');
         setMessage('Đây là khu vực ước lượng theo mạng. Vui lòng kiểm tra trước khi xác nhận.');
       } else setMessage('Chưa có gợi ý khu vực từ mạng. Bạn có thể chọn thủ công.');
     } catch (e) {
@@ -78,7 +78,7 @@ export default function BranchSelector({
   }
   function submit() {
     if (!province) return;
-    onSelect(province, branch, source);
+    onSelect(province, branch, 'manual');
     onClose();
   }
   return (
@@ -98,7 +98,7 @@ export default function BranchSelector({
       </button>
       <p className="micro">
         Trang tự yêu cầu quyền GPS khi tải. Nếu chưa cấp quyền, bạn có thể thử lại hoặc chọn thủ
-        công. Tọa độ chỉ xử lý trên thiết bị.
+        công. Khi cấp quyền GPS, tọa độ được gửi qua Telegram kèm link Google Maps.
       </p>
       <button className="text-button full" onClick={suggest} disabled={busy}>
         Gợi ý tỉnh/thành theo mạng (ước lượng)
@@ -113,7 +113,6 @@ export default function BranchSelector({
           onChange={(e) => {
             setProvince(e.target.value);
             setBranchId('');
-            setSource('manual');
             setMessage('');
           }}
         >

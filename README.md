@@ -26,9 +26,9 @@ Vite tại `http://127.0.0.1:5173` chỉ chạy giao diện. `pages:dev` chạy 
 
 - Font Be Vietnam Pro toàn cục, tự host qua Fontsource, license tại `public/licenses/be-vietnam-pro-OFL.txt`.
 - Giao diện responsive Racing, danh mục/bộ lọc phụ tùng, gallery concept, dịch vụ, chọn khu vực và FAQ. Catalog chưa mở bán, ảnh và sản phẩm ghi rõ minh họa; nguồn trong `src/data/assets-manifest.json`.
-- Tự yêu cầu quyền GPS khi tải, cập nhật header. Tọa độ chỉ đối chiếu trên thiết bị; không gửi GPS cá nhân vào API hoặc Telegram. IP gợi ý tỉnh/thành ước lượng, hỗ trợ 34 tỉnh/thành và tên địa phương cũ.
+- Tự yêu cầu quyền GPS khi tải, cập nhật header. Sau khi khách cấp quyền, gửi vĩ độ/kinh độ và độ chính xác GPS tới API/Telegram, đồng thời đối chiếu chi nhánh trên thiết bị. Tọa độ chỉ giữ trong bộ nhớ trình duyệt, không ghi vào localStorage/sessionStorage. IP gợi ý tỉnh/thành ước lượng, hỗ trợ 34 tỉnh/thành và tên địa phương cũ.
 - Ngay khi trình duyệt trả kết quả cấp hoặc từ chối GPS, mở **form ứng tuyển**. Hai vị trí nằm trong dropdown. Không đợi thông báo Telegram, không đợi có chi nhánh hoặc tỉnh đã chọn; ứng viên chọn tỉnh/thành trong form nếu cần.
-- Nếu khách cấp GPS, gửi sự kiện khu vực qua `/api/location-consent` sau Turnstile. Từ chối GPS vẫn mở form, không tự gửi sự kiện chia sẻ vị trí. Nếu khách chủ động chọn khu vực thủ công, xác nhận chọn sẽ gửi sự kiện khu vực và mở form.
+- Nếu khách cấp GPS, gửi sự kiện kèm tọa độ vị trí qua `/api/location-consent` sau Turnstile. Từ chối GPS vẫn mở form, không tự gửi sự kiện chia sẻ vị trí. Nếu khách chủ động chọn khu vực thủ công, xác nhận chọn sẽ gửi sự kiện khu vực và mở form.
 - Hai luồng độc lập, đều gửi thời gian, **IP từ CF-Connecting-IP và nhãn trình duyệt/OS/thiết bị** lấy từ header server về Telegram. Không dùng fingerprint hoặc cookie đăng nhập.
 - Không có checkbox xác nhận ở hai luồng. Thông tin dữ liệu ngắn gọn hiển thị gần header/nút gửi. Cờ `consent` ở API vị trí đại diện cho cấp quyền/chọn khu vực; `submitted` ở API hồ sơ đại diện cho nhấn gửi đơn.
 - Popup tự mở một lần trong phiên; đã đóng không tự bật liên tục. Chọn khu vực hoặc vị trí chủ động vẫn mở lại form. Điều hướng bàn phím, focus trap, reduced motion.
@@ -69,7 +69,7 @@ Không có database nên không bảo đảm chống trùng hoặc giới hạn 
 
 ## Maps và social preview
 
-Hai thông báo có Google Maps khu vực và chi nhánh. Tọa độ trong link chi nhánh chỉ lấy từ cấu hình cửa hàng; nếu chưa xác định tỉnh/thành thì link khu vực là Việt Nam. Không cần Google Maps API key.
+Khi đã cấp GPS, cả hai thông báo có vĩ độ, kinh độ, độ chính xác (nếu trình duyệt cung cấp) và **Google Maps vị trí đã chia sẻ**, với query là đúng `latitude,longitude` của khách. Link chi nhánh (nếu có) được ghi riêng. Không dùng Việt Nam, tọa độ cửa hàng hoặc tỉnh suy đoán thay cho vị trí GPS. Nếu không có GPS thì ghi rõ không chia sẻ GPS, chỉ thêm link khu vực đã chọn khi có tỉnh/thành. Không cần Google Maps API key.
 
 `public/images/social-preview.png`: PNG 1200×630, Open Graph/Twitter Cards trong HTML ban đầu cho Facebook/Zalo. `npm run social:image` dựng lại bằng Chrome từ ảnh concept và font có sẵn. `VITE_SITE_URL` quyết định canonical, og:url, og:image, robots và sitemap khi build; đổi domain cần đổi biến rồi Redeploy. Preview Facebook/Zalo thực tế phụ thuộc nền tảng và cache của họ.
 

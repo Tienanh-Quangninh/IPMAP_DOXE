@@ -1,11 +1,13 @@
 import { useEffect, useRef, useState } from 'react';
 import Turnstile from './Turnstile';
 import { sendEvent } from '../services/events';
+import type { SharedPosition } from '../services/location';
 export type LocationEvent = {
   branchId: string | null;
   province: string | null;
   source: 'gps' | 'manual';
   consent: true;
+  position?: SharedPosition | null;
 };
 
 export default function LocationNotifier({ event }: { event: LocationEvent }) {
@@ -31,7 +33,9 @@ export default function LocationNotifier({ event }: { event: LocationEvent }) {
   return (
     <div className="location-notifier" aria-live="polite">
       <p className="micro">
-        Thông tin khu vực, IP và trình duyệt được gửi đến bộ phận tiếp nhận qua Telegram.
+        {event.position
+          ? 'Tọa độ GPS đã được cấp quyền, khu vực, IP và trình duyệt được gửi đến bộ phận tiếp nhận qua Telegram.'
+          : 'Khu vực đã chọn, IP và trình duyệt được gửi đến bộ phận tiếp nhận qua Telegram; không có tọa độ GPS.'}
       </p>
       {status === 'waiting' && <Turnstile action="location" onToken={setToken} resetKey={reset} />}
       <p className="micro">{status === 'sending' ? 'Đang gửi thông tin khu vực…' : message}</p>

@@ -30,6 +30,12 @@ export interface Province {
   aliases: string[];
 }
 
+export interface SharedPosition {
+  latitude: number;
+  longitude: number;
+  accuracy?: number;
+}
+
 export interface Env {
   TELEGRAM_BOT_TOKEN?: string;
   TELEGRAM_CHAT_ID?: string;

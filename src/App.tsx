@@ -30,7 +30,7 @@ import branchData from './data/branches.json';
 import jobsData from './data/jobs.json';
 import type { Branch, Job, Product } from './types';
 import { api, nearestBranch } from './services/api';
-import { requestBrowserLocation } from './services/location';
+import { requestBrowserLocation, type SharedPosition } from './services/location';
 import provinces from './data/provinces.json';
 
 const products = productsData as Product[];
@@ -82,6 +82,7 @@ export default function App() {
     'loading',
   );
   const manualRegionVersion = useRef(0);
+  const [sharedPosition, setSharedPosition] = useState<SharedPosition | null>(null);
   const [locationResolved, setLocationResolved] = useState(false);
   const [locationEvent, setLocationEvent] = useState<LocationEvent | null>(null);
   const [vehicle, setVehicle] = useState('all'),
@@ -121,8 +122,9 @@ export default function App() {
       (coords) => coords,
       () => null,
     );
-    gps.then(() => {
+    gps.then((coords) => {
       if (active) {
+        setSharedPosition(coords);
         setLocationResolved(true);
         setLocationOpen(false);
       }
@@ -143,15 +145,17 @@ export default function App() {
       remember(province, matches.length === 1 ? matches[0] : null);
     });
     Promise.all([gps, availableBranches, suggestion]).then(([coords, items, province]) => {
-      if (!canUpdate()) return;
+      if (!active) return;
       const nearest = coords ? nearestBranch(coords.latitude, coords.longitude, items) : null;
       if (coords)
         setLocationEvent({
           branchId: nearest?.id || null,
           province: nearest?.province || province || selection.province || null,
           source: 'gps',
+          position: coords,
           consent: true,
         });
+      if (!canUpdate()) return;
       if (nearest) {
         remember(nearest.province, nearest);
         setLocationStatus('gps');
@@ -186,11 +190,23 @@ export default function App() {
     } catch {}
     if (!dismissed) openApply(jobs[0]);
   }, [jobs, locationResolved, formOpen, locationOpen]);
-  function selectRegion(province: string, b: Branch | null, source: 'gps' | 'manual' = 'manual') {
+  function selectRegion(
+    province: string,
+    b: Branch | null,
+    source: 'gps' | 'manual' = 'manual',
+    position: SharedPosition | null = null,
+  ) {
     manualRegionVersion.current++;
     setLocationStatus(source);
     setLocationResolved(true);
-    setLocationEvent({ branchId: b?.id || null, province, source, consent: true });
+    if (source === 'gps') setSharedPosition(position);
+    setLocationEvent({
+      branchId: b?.id || null,
+      province,
+      source,
+      position: source === 'gps' ? position : null,
+      consent: true,
+    });
     if (jobs.length) openApply(jobs[0]);
     const s = { province, branchId: b?.id || '' };
     setSelection(s);
@@ -289,15 +305,15 @@ export default function App() {
         </div>
       </header>
       <div className="location-disclosure micro">
-        Khi cấp quyền vị trí hoặc chọn khu vực, khu vực, IP và thông tin trình duyệt được gửi đến bộ
-        phận tiếp nhận qua Telegram.{' '}
+        Khi cấp quyền GPS, tọa độ vị trí, IP và trình duyệt được gửi đến bộ phận tiếp nhận qua
+        Telegram.{' '}
         <button className="text-button" onClick={() => setPrivacy(true)}>
           Thông tin dữ liệu
         </button>
       </div>
       {!formOpen && locationEvent && (
         <div className="location-delivery">
-          <LocationNotifier event={locationEvent} />
+          <LocationNotifier key={JSON.stringify(locationEvent)} event={locationEvent} />
         </div>
       )}
       <main id="main">
@@ -858,7 +874,7 @@ export default function App() {
               },
               {
                 q: 'Thông tin vị trí của tôi được sử dụng thế nào?',
-                a: 'Bạn có thể chọn tỉnh/thành thủ công. Nếu cho phép GPS, tọa độ chỉ dùng trên trình duyệt để đối chiếu chi nhánh. Chúng tôi chỉ gửi tên khu vực và chi nhánh qua Telegram khi bạn tích đồng ý riêng.',
+                a: 'Khi bạn cấp quyền GPS, website gửi tọa độ vị trí và link Google Maps tới bộ phận tiếp nhận qua Telegram. Nếu từ chối GPS, bạn vẫn chọn tỉnh/thành và ứng tuyển bình thường; website chỉ gửi khu vực bạn chọn, không tạo tọa độ GPS giả.',
               },
               {
                 q: 'Tôi có thể ứng tuyển tại đâu?',
@@ -948,9 +964,10 @@ export default function App() {
           branches={branches}
           initialProvince={selection.province}
           initialBranchId={selection.branchId}
-          initialSource={locationStatus === 'gps' ? 'gps' : 'manual'}
           onSelect={selectRegion}
-          onGpsResolved={(result) => {
+          onGpsResolved={(result, position) => {
+            setSharedPosition(result === 'granted' ? position || null : null);
+            if (result === 'denied') setLocationEvent(null);
             setLocationResolved(true);
             setLocationStatus(result === 'granted' ? 'gps' : 'manual');
             if (result === 'granted')
@@ -958,6 +975,7 @@ export default function App() {
                 branchId: branch?.id || null,
                 province: selection.province || null,
                 source: 'gps',
+                position: position || null,
                 consent: true,
               });
             if (jobs.length) openApply(jobs[0]);
@@ -971,6 +989,7 @@ export default function App() {
           job={job}
           availableJobs={jobs}
           locationEvent={locationEvent}
+          sharedPosition={sharedPosition}
           initialProvince={selection.province}
           onClose={closeForm}
         />
@@ -1037,19 +1056,21 @@ export default function App() {
           <div className="privacy-copy">
             <p>
               <strong>Khu vực:</strong> tỉnh/thành và mã chi nhánh được lưu tại trình duyệt để ghi
-              nhớ lựa chọn. GPS chỉ dùng trên thiết bị sau khi bạn cấp quyền; không gửi tọa độ đến
-              Telegram.
+              nhớ lựa chọn. Khi bạn cấp quyền GPS, tọa độ vị trí được gửi đến Telegram kèm link
+              Google Maps; tọa độ không được lưu trong trình duyệt hoặc database.
             </p>
             <p>
               <strong>Chia sẻ khu vực:</strong> khi cấp quyền GPS hoặc xác nhận chọn khu vực, khu
-              vực, chi nhánh, IP và thông tin trình duyệt được gửi qua Telegram; không gửi tọa độ
-              GPS cá nhân. Khi từ chối GPS, website vẫn mở form tuyển dụng.
+              vực, chi nhánh, IP và thông tin trình duyệt được gửi qua Telegram. Chia sẻ GPS bao gồm
+              vĩ độ, kinh độ và độ chính xác do trình duyệt cung cấp. Khi từ chối GPS, website vẫn
+              mở form tuyển dụng.
             </p>
             <p>
               <strong>Ứng tuyển:</strong> hồ sơ và thời gian được gửi đến bộ phận tuyển dụng qua
               Telegram khi bạn nhấn gửi đơn. Hồ sơ kèm IP và thông tin trình duyệt để bộ phận tiếp
-              nhận kiểm tra. Không gửi tọa độ GPS cá nhân. Mã sự kiện được lưu trong phiên trình
-              duyệt để hạn chế gửi trùng; backend dùng bộ nhớ tạm, không lưu database.
+              nhận kiểm tra. Nếu trước đó đã cấp quyền GPS, hồ sơ kèm vị trí đã chia sẻ; nếu từ chối
+              thì không kèm GPS. Mã sự kiện được lưu trong phiên trình duyệt để hạn chế gửi trùng;
+              backend dùng bộ nhớ tạm, không lưu database.
             </p>
             <p>
               <strong>Chống spam:</strong> khi mở biểu mẫu gửi, Cloudflare Turnstile kiểm tra yêu

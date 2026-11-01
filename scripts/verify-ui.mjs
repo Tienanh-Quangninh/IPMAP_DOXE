@@ -81,7 +81,9 @@ async function setup(hasBranch = false, region = 'Ninh Bình') {
         getCurrentPosition(resolve, reject) {
           window.__gpsRequests++;
           window.__finishLocation = (allow) =>
-            allow ? resolve({ coords: { latitude: 20.4, longitude: 106.1 } }) : reject({ code: 1 });
+            allow
+              ? resolve({ coords: { latitude: 21.1234567, longitude: 107.7654321, accuracy: 8.5 } })
+              : reject({ code: 1 });
         },
       },
     });
@@ -168,6 +170,7 @@ try {
     .toBe(1);
   assert.equal(denied.events[0].payload.branchId, null);
   assert.equal(denied.events[0].payload.source, 'manual');
+  assert.equal(denied.events[0].payload.position, null);
   await denied.context.close();
   console.log(
     'Denied GPS checks passed: immediate recruitment form, no location POST until manual selection, no consent checkbox, no repeated popup, 4 responsive widths.',
@@ -184,9 +187,10 @@ try {
   const loc = granted.events[0].payload;
   assert.equal(loc.source, 'gps');
   assert.equal(loc.branchId, branch.id);
+  assert.deepEqual(loc.position, { latitude: 21.1234567, longitude: 107.7654321, accuracy: 8.5 });
   assert.deepEqual(
     Object.keys(loc).sort(),
-    ['branchId', 'province', 'source', 'consent', 'eventId', 'turnstileToken'].sort(),
+    ['branchId', 'province', 'source', 'consent', 'position', 'eventId', 'turnstileToken'].sort(),
   );
   await expect(granted.page.locator('.branch-button')).toContainText(branch.name);
   await granted.page.getByLabel('Họ và tên').fill('Ứng viên kiểm thử');
@@ -205,6 +209,13 @@ try {
   assert.equal(applies[0].payload.eventId, applies[1].payload.eventId);
   assert.equal(applies[1].payload.jobId, 'vehicle-technician');
   assert.equal(applies[1].payload.submitted, true);
+  assert.deepEqual(applies[1].payload.position, loc.position);
+  assert.equal(applies[1].payload.locationShared, true);
+  assert.equal(
+    await granted.page.evaluate(() => localStorage.getItem('rg-region').includes('latitude')),
+    false,
+    'GPS must not enter localStorage',
+  );
   await granted.page.getByRole('button', { name: 'Hoàn tất', exact: true }).click();
   await granted.page.waitForTimeout(400);
   assert.equal(
@@ -220,6 +231,11 @@ try {
   await expect.poll(() => unknown.events.length).toBe(1);
   assert.equal(unknown.events[0].payload.branchId, null);
   assert.equal(unknown.events[0].payload.province, null);
+  assert.equal(
+    unknown.events[0].payload.position.latitude,
+    21.1234567,
+    'GPS must be sent even when region/branch is unknown',
+  );
   await unknown.context.close();
   assert.deepEqual(errors, []);
   await granted.context.close();

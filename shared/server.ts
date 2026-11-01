@@ -1,4 +1,4 @@
-import type { Branch, Env, FunctionContext, Job, Province } from './types';
+import type { Branch, Env, FunctionContext, Job, Province, SharedPosition } from './types';
 import branchesData from '../src/data/branches.json';
 import jobsData from '../src/data/jobs.json';
 import provincesData from '../src/data/provinces.json';
@@ -154,12 +154,40 @@ export function normalizeProvince(value: string): string | null {
   );
 }
 
+export function readPosition(value: unknown): SharedPosition | null {
+  if (value === undefined || value === null) return null;
+  if (typeof value !== 'object' || Array.isArray(value))
+    throw new ApiError(400, 'VALIDATION_ERROR', 'Tọa độ GPS không hợp lệ.');
+  const p = value as Record<string, unknown>;
+  if (
+    Object.keys(p).some((k) => !['latitude', 'longitude', 'accuracy'].includes(k)) ||
+    typeof p.latitude !== 'number' ||
+    !Number.isFinite(p.latitude) ||
+    Math.abs(p.latitude) > 90 ||
+    typeof p.longitude !== 'number' ||
+    !Number.isFinite(p.longitude) ||
+    Math.abs(p.longitude) > 180 ||
+    (p.accuracy !== undefined &&
+      (typeof p.accuracy !== 'number' ||
+        !Number.isFinite(p.accuracy) ||
+        p.accuracy < 0 ||
+        p.accuracy > 40075000))
+  )
+    throw new ApiError(400, 'VALIDATION_ERROR', 'Tọa độ GPS không hợp lệ.');
+  return {
+    latitude: p.latitude,
+    longitude: p.longitude,
+    ...(p.accuracy === undefined ? {} : { accuracy: p.accuracy as number }),
+  };
+}
+
 export function validateLocation(body: Body, available: Branch[] = branches) {
   const allowed = new Set([
     'eventId',
     'branchId',
     'province',
     'source',
+    'position',
     'consent',
     'turnstileToken',
   ]);
@@ -167,7 +195,7 @@ export function validateLocation(body: Body, available: Branch[] = branches) {
     throw new ApiError(
       400,
       'VALIDATION_ERROR',
-      'Thông báo khu vực không nhận tọa độ hoặc dữ liệu thiết bị.',
+      'Thông báo vị trí có trường dữ liệu không được hỗ trợ.',
     );
   const base = common(body);
   const branchId =
@@ -193,7 +221,16 @@ export function validateLocation(body: Body, available: Branch[] = branches) {
     throw new ApiError(400, 'VALIDATION_ERROR', 'Khu vực không hợp lệ hoặc không khớp chi nhánh.');
   if (body.source !== 'gps' && body.source !== 'manual')
     throw new ApiError(400, 'VALIDATION_ERROR', 'Nguồn lựa chọn không hợp lệ.');
-  return { ...base, branchId: branch?.id || null, branch, province, source: body.source };
+  const position = readPosition(body.position);
+  if (body.source === 'gps' && !position)
+    throw new ApiError(
+      400,
+      'GPS_REQUIRED',
+      'Chưa nhận được tọa độ GPS đã chia sẻ. Vui lòng tải lại trang và cấp quyền vị trí.',
+    );
+  if (body.source === 'manual' && position)
+    throw new ApiError(400, 'VALIDATION_ERROR', 'Chọn thủ công không phải chia sẻ GPS.');
+  return { ...base, branchId: branch?.id || null, branch, province, source: body.source, position };
 }
 
 export function validateApplication(
@@ -214,6 +251,8 @@ export function validateApplication(
     'vehicle',
     'submitted',
     'province',
+    'position',
+    'locationShared',
     'turnstileToken',
     'website',
   ]);
@@ -222,6 +261,13 @@ export function validateApplication(
   if (body.website !== undefined && body.website !== '')
     throw new ApiError(400, 'VALIDATION_ERROR', 'Không thể tiếp nhận biểu mẫu này.');
   const base = common(body, 'application');
+  const position = readPosition(body.position);
+  if ((position && body.locationShared !== true) || (body.locationShared === true && !position))
+    throw new ApiError(
+      400,
+      'LOCATION_PERMISSION_REQUIRED',
+      'Chỉ gửi tọa độ đã được khách cho phép chia sẻ.',
+    );
   const jobId = text(body, 'jobId', 1, 80);
   const job = openings.find((j) => j.id === jobId && j.active);
   if (!job) throw new ApiError(400, 'JOB_UNAVAILABLE', 'Vị trí này hiện không tiếp nhận hồ sơ.');
@@ -278,6 +324,7 @@ export function validateApplication(
   return {
     ...base,
     branch,
+    position,
     branchId: branch?.id || null,
     province,
     job,
