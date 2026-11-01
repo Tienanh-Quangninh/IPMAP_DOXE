@@ -16,6 +16,7 @@ import { onRequest as suggestion } from '../functions/api/branch-suggestion';
 import { branchGoogleMaps, googleMapsSearch, sharedLocationMessage } from '../shared/maps';
 import { onRequest as applyRoute } from '../functions/api/apply';
 import { onRequest as locationRoute } from '../functions/api/location-consent';
+import { linkCodeFromPath } from '../shared/link-code';
 
 test('Google Maps links encode region queries and use public shop coordinates or address', () => {
   const area = new URL(googleMapsSearch('Ninh Bình & Nam Định, Việt Nam'));
@@ -402,6 +403,7 @@ test('both Telegram notifications pin visitor GPS independently of the selected 
   const position = { latitude: 21.1234567, longitude: 107.7654321, accuracy: 8.5 };
   const environment = env();
   const loc = {
+    linkCode: 'tienanh',
     eventId: crypto.randomUUID(),
     branchId: null,
     province: null,
@@ -413,6 +415,7 @@ test('both Telegram notifications pin visitor GPS independently of the selected 
   assert.equal((await locationRoute({ request: request(loc), env: environment })).status, 200);
   const body = {
     ...valid(),
+    linkCode: 'tienanh',
     branchId: null,
     jobId: 'customer-support',
     province: 'Ninh Bình',
@@ -421,17 +424,39 @@ test('both Telegram notifications pin visitor GPS independently of the selected 
   };
   assert.equal((await applyRoute({ request: request(body), env: environment })).status, 200);
   for (const message of messages) {
+    assert.match(message, /Mã link: tienanh\nPath: \/tienanh\n/);
     const link = message.match(/Google Maps vị trí đã chia sẻ: (https:[^\s]+)/)?.[1];
     assert.equal(new URL(link!).searchParams.get('query'), '21.1234567,107.7654321');
     assert.match(message, /Vĩ độ: 21.1234567/);
     assert.match(message, /Kinh độ: 107.7654321/);
   }
   assert.throws(() => validateApplication({ ...body, locationShared: false }), ApiError);
+  assert.throws(() => validateApplication({ ...body, linkCode: 'a\nFake entry' }), ApiError);
+  assert.throws(() => validateLocation({ ...loc, linkCode: 'a'.repeat(81) }), ApiError);
   assert.throws(() => validateLocation({ ...loc, position: null }), ApiError);
   assert.throws(
     () => validateLocation({ ...loc, province: 'Ninh Bình', source: 'manual' }),
     ApiError,
   );
+});
+
+test('link labels accept one safe path segment and ignore queries and invalid paths', () => {
+  assert.equal(linkCodeFromPath('/tienanh'), 'tienanh');
+  assert.equal(linkCodeFromPath('/lananh/'), 'lananh');
+  assert.equal(linkCodeFromPath('/khach-A_02'), 'khach-A_02');
+  assert.equal(linkCodeFromPath('/%74ienanh'), 'tienanh');
+  for (const path of [
+    '/',
+    '/api',
+    '/api/apply',
+    '/images',
+    '/index.html',
+    '/a/b',
+    '/%0Atienanh',
+    '/%ZZ',
+    '/' + 'a'.repeat(81),
+  ])
+    assert.equal(linkCodeFromPath(path), null);
 });
 
 test('visit notifications accept no GPS and reject attached coordinates', () => {

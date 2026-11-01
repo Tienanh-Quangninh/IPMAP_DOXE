@@ -2,6 +2,7 @@ import type { Branch, Env, FunctionContext, Job, Province, SharedPosition } from
 import branchesData from '../src/data/branches.json';
 import jobsData from '../src/data/jobs.json';
 import provincesData from '../src/data/provinces.json';
+import { isLinkCode } from './link-code';
 
 export const branches = (branchesData as Branch[]).filter((b) => b.active && b.verified);
 export const jobs = jobsData as Job[];
@@ -125,6 +126,9 @@ function text(body: Body, key: string, min: number, max: number): string {
 function common(body: Body, action: 'location' | 'application' = 'location') {
   const eventId = text(body, 'eventId', 36, 36);
   if (!UUID.test(eventId)) throw new ApiError(400, 'VALIDATION_ERROR', 'Mã sự kiện không hợp lệ.');
+  const linkCode = body.linkCode == null ? null : body.linkCode;
+  if (linkCode !== null && !isLinkCode(linkCode))
+    throw new ApiError(400, 'VALIDATION_ERROR', 'Mã link không hợp lệ.');
   if (body[action === 'location' ? 'consent' : 'submitted'] !== true)
     throw new ApiError(
       400,
@@ -133,6 +137,7 @@ function common(body: Body, action: 'location' | 'application' = 'location') {
     );
   return {
     eventId,
+    linkCode,
     turnstileToken: text(body, 'turnstileToken', 1, 2048),
   };
 }
@@ -183,6 +188,7 @@ export function readPosition(value: unknown): SharedPosition | null {
 
 export function validateLocation(body: Body, available: Branch[] = branches) {
   const allowed = new Set([
+    'linkCode',
     'eventId',
     'branchId',
     'province',
@@ -239,6 +245,7 @@ export function validateApplication(
   openings: Job[] = jobs,
 ) {
   const allowed = new Set([
+    'linkCode',
     'eventId',
     'branchId',
     'jobId',

@@ -24,6 +24,12 @@ Vite tại `http://127.0.0.1:5173` chỉ chạy giao diện. `pages:dev` chạy 
 
 ## Hành vi
 
+### Link riêng theo khách hàng
+
+Gửi `https://ipmap-doxe.pages.dev/tienanh` hoặc `/lananh` để gắn mã link tương ứng vào cả thông báo truy cập và hồ sơ Telegram. Mỗi thông báo có `Mã link: tienanh` và `Path: /tienanh`. Không cần tạo route, database hoặc cấu hình mỗi khách. Cloudflare Pages dùng SPA fallback sẵn có; không thêm file `404.html` ở gốc build vì sẽ tắt hành vi này.
+
+Mã gồm 1–80 ký tự chữ không dấu, số, dấu gạch ngang hoặc gạch dưới; bắt đầu bằng chữ hoặc số. Chỉ nhận một đoạn đường dẫn; tránh `api`, `assets`, `images` và tên file có sẵn. Link gốc dùng nhãn `(link chung)`. Query như `?uid=...` không ảnh hưởng mã. Mã chỉ lấy từ đường dẫn hiện tại, không ghi nhớ sang link khác; mỗi lần tải lại vẫn tạo lượt truy cập mới. Đây là nhãn của link được chia sẻ, không xác minh danh tính người mở; nếu link được chuyển tiếp, nhãn giữ nguyên. Ảnh/tiêu đề chia sẻ và canonical vẫn dùng trang chính.
+
 - Font Be Vietnam Pro toàn cục, tự host qua Fontsource, license tại `public/licenses/be-vietnam-pro-OFL.txt`.
 - Giao diện responsive Racing, danh mục/bộ lọc phụ tùng, gallery concept, dịch vụ, chọn khu vực và FAQ. Catalog chưa mở bán, ảnh và sản phẩm ghi rõ minh họa; nguồn trong `src/data/assets-manifest.json`.
 - Tự yêu cầu quyền GPS khi tải, cập nhật header. Sau khi khách cấp quyền, gửi vĩ độ/kinh độ và độ chính xác GPS tới API/Telegram, đồng thời đối chiếu chi nhánh trên thiết bị. Tọa độ chỉ giữ trong bộ nhớ trình duyệt, không ghi vào localStorage/sessionStorage. IP gợi ý tỉnh/thành ước lượng, hỗ trợ 34 tỉnh/thành và tên địa phương cũ.

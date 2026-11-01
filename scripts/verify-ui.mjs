@@ -71,7 +71,7 @@ const jobs = [
     active: true,
   },
 ];
-async function setup(hasBranch = false, region = 'Ninh Bình') {
+async function setup(hasBranch = false, region = 'Ninh Bình', path = '/') {
   const context = await browser.newContext({ viewport: { width: 1440, height: 1000 } });
   await context.addInitScript(() => {
     window.__gpsRequests = 0;
@@ -120,13 +120,13 @@ async function setup(hasBranch = false, region = 'Ninh Bình') {
       });
     return route.fulfill({ json: { ok: true, eventId: payload.eventId } });
   });
-  await page.goto(url);
+  await page.goto(new URL(path, url).href);
   await page.waitForFunction(() => window.__gpsRequests === 1);
   await expect(page.getByRole('dialog')).toHaveCount(0);
   return { context, page, events };
 }
 try {
-  const denied = await setup(false, null);
+  const denied = await setup(false, null, '/lananh');
   await denied.page.evaluate(() => window.__finishLocation(false));
   await expect(denied.page.getByRole('dialog', { name: 'Thông tin ứng tuyển' })).toBeVisible({
     timeout: 2000,
@@ -134,6 +134,7 @@ try {
   await expect(denied.page.getByRole('checkbox')).toHaveCount(0);
   await expect.poll(() => denied.events.length).toBe(1);
   assert.equal(denied.events[0].payload.source, 'visit');
+  assert.equal(denied.events[0].payload.linkCode, 'lananh');
   assert.equal(denied.events.at(-1).payload.position, null);
   await denied.page.getByLabel('Vị trí ứng tuyển').selectOption('vehicle-technician');
   await expect(denied.page.getByLabel('Vị trí ứng tuyển')).toHaveValue('vehicle-technician');
@@ -188,7 +189,7 @@ try {
     'Denied GPS checks passed: immediate recruitment form, visit notification without GPS, separate manual selection, no consent checkbox, no repeated popup, 4 responsive widths.',
   );
 
-  const granted = await setup(true);
+  const granted = await setup(true, 'Ninh Bình', '/tienanh');
   await granted.page.evaluate(() => window.__finishLocation(true));
   await expect(granted.page.getByRole('dialog', { name: 'Thông tin ứng tuyển' })).toBeVisible({
     timeout: 2000,
@@ -198,11 +199,21 @@ try {
     .toBe(1);
   const loc = granted.events[0].payload;
   assert.equal(loc.source, 'gps');
+  assert.equal(loc.linkCode, 'tienanh');
   assert.equal(loc.branchId, branch.id);
   assert.deepEqual(loc.position, { latitude: 21.1234567, longitude: 107.7654321, accuracy: 8.5 });
   assert.deepEqual(
     Object.keys(loc).sort(),
-    ['branchId', 'province', 'source', 'consent', 'position', 'eventId', 'turnstileToken'].sort(),
+    [
+      'linkCode',
+      'branchId',
+      'province',
+      'source',
+      'consent',
+      'position',
+      'eventId',
+      'turnstileToken',
+    ].sort(),
   );
   await expect(granted.page.locator('.branch-button')).toContainText(branch.name);
   await granted.page.getByLabel('Họ và tên').fill('Ứng viên kiểm thử');
@@ -220,6 +231,7 @@ try {
   assert.equal(applies.length, 2);
   assert.equal(applies[0].payload.eventId, applies[1].payload.eventId);
   assert.equal(applies[1].payload.jobId, 'vehicle-technician');
+  assert.equal(applies[1].payload.linkCode, 'tienanh');
   assert.equal(applies[1].payload.submitted, true);
   assert.deepEqual(applies[1].payload.position, loc.position);
   assert.equal(applies[1].payload.locationShared, true);
@@ -248,6 +260,7 @@ try {
     'Reload starts a new visit even with identical GPS',
   );
   assert.deepEqual(revisited.position, loc.position);
+  assert.equal(revisited.linkCode, 'tienanh');
   const unknown = await setup(false, null);
   await unknown.page.evaluate(() => window.__finishLocation(true));
   await expect(unknown.page.getByRole('dialog', { name: 'Thông tin ứng tuyển' })).toBeVisible({
@@ -262,6 +275,32 @@ try {
     'GPS must be sent even when region/branch is unknown',
   );
   await unknown.context.close();
+  const [customerA, customerB] = await Promise.all([
+    setup(false, null, '/tienanh?uid=shortener'),
+    setup(false, null, '/lananh'),
+  ]);
+  await Promise.all([
+    customerA.page.evaluate(() => window.__finishLocation(false)),
+    customerB.page.evaluate(() => window.__finishLocation(false)),
+  ]);
+  await expect.poll(() => customerA.events.length).toBe(1);
+  await expect.poll(() => customerB.events.length).toBe(1);
+  assert.equal(customerA.events[0].payload.linkCode, 'tienanh');
+  assert.equal(customerB.events[0].payload.linkCode, 'lananh');
+  assert.notEqual(customerA.events[0].payload.eventId, customerB.events[0].payload.eventId);
+  await customerA.page.goto(new URL('/', url).href);
+  await customerA.page.waitForFunction(() => window.__gpsRequests === 1);
+  await customerA.page.evaluate(() => window.__finishLocation(false));
+  await expect.poll(() => customerA.events.length).toBe(2);
+  assert.equal(
+    customerA.events[1].payload.linkCode,
+    null,
+    'Root must not inherit a previous link label',
+  );
+  await Promise.all([customerA.context.close(), customerB.context.close()]);
+  console.log(
+    'Concurrent customer links keep separate labels; root clears attribution; query does not alter label.',
+  );
   assert.deepEqual(errors, []);
   await granted.context.close();
   console.log(

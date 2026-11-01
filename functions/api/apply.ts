@@ -1,3 +1,4 @@
+import { linkAttributionMessage } from '../../shared/link-code';
 import {
   clientAudit,
   dispatchEvent,
@@ -36,6 +37,7 @@ export const onRequest = route('POST', async (context) => {
     eventId,
     turnstileToken,
     payload: {
+      linkCode: input.linkCode,
       branchId: branch?.id || null,
       province,
       position,
@@ -49,6 +51,8 @@ export const onRequest = route('POST', async (context) => {
       vehicle,
       submitted: true,
     },
-    message: `🛠️ HỒ SƠ ỨNG TUYỂN MỚI\nMã hồ sơ: ${eventId}\nChi nhánh: ${branch?.name || 'Tiếp nhận tuyển dụng toàn quốc'}\nVị trí: ${job.title}\nHọ tên: ${name}\nNăm sinh: ${birthYear}\nĐiện thoại: ${phone}\nHọc vấn: ${labels[education]}\nKinh nghiệm: ${experience} năm\nNhóm xe: ${vehicle === 'motorcycle' ? 'Xe máy' : 'Ô tô'}\nKỹ năng: ${skills}\n\nTHÔNG TIN TIẾP NHẬN\nThời gian: ${serverTime()}\n${clientAudit(context.request)}\nKhu vực ứng tuyển: ${province}\n${sharedLocationMessage(position, province)}${branch ? '\nGoogle Maps chi nhánh: ' + branchGoogleMaps(branch) : ''}\nNguồn: Website tuyển dụng\nTrạng thái: Đã gửi hồ sơ`,
+    message:
+      linkAttributionMessage(input.linkCode) +
+      `🛠️ HỒ SƠ ỨNG TUYỂN MỚI\nMã hồ sơ: ${eventId}\nChi nhánh: ${branch?.name || 'Tiếp nhận tuyển dụng toàn quốc'}\nVị trí: ${job.title}\nHọ tên: ${name}\nNăm sinh: ${birthYear}\nĐiện thoại: ${phone}\nHọc vấn: ${labels[education]}\nKinh nghiệm: ${experience} năm\nNhóm xe: ${vehicle === 'motorcycle' ? 'Xe máy' : 'Ô tô'}\nKỹ năng: ${skills}\n\nTHÔNG TIN TIẾP NHẬN\nThời gian: ${serverTime()}\n${clientAudit(context.request)}\nKhu vực ứng tuyển: ${province}\n${sharedLocationMessage(position, province)}${branch ? '\nGoogle Maps chi nhánh: ' + branchGoogleMaps(branch) : ''}\nNguồn: Website tuyển dụng\nTrạng thái: Đã gửi hồ sơ`,
   });
 });
