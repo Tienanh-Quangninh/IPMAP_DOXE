@@ -6,6 +6,8 @@ Các route GET luôn hoạt động; POST đóng an toàn nếu thiếu cấu h�
 
 Tạo D1 database và bind với tên `EVENT_STORE`, thực thi `shared/schema.sql` trước khi mở biểu mẫu. D1 chỉ lưu mã sự kiện, loại sự kiện, hash định danh giới hạn tần suất, hash nội dung và trạng thái gửi; không lưu hồ sơ, IP thô hoặc tọa độ. Dùng một database riêng cho preview và production.
 
+Cấu hình production/preview qua Cloudflare Pages Dashboard. Repository không có `wrangler.toml` để Dashboard cho phép quản lý biến Text và bindings. Khi chạy cục bộ, `.dev.vars` vẫn dùng được; để gắn D1 local, dùng `wrangler pages dev dist --d1 EVENT_STORE` và áp dụng schema cho database local trước khi thử gửi form.
+
 POST yêu cầu JSON cùng Origin với website, UUID v4 `eventId`, `consent: true`, Turnstile token. Widget Turnstile cần `action: location` cho chia sẻ khu vực và `action: apply` cho ứng tuyển. Backend kiểm tra hostname bằng hostname URL request. Cấu hình widget cho domain production/preview thực tế. Không dùng test secrets khi production.
 
 `branches.json` và `jobs.json` cố ý rỗng. Chỉ thêm cơ sở thực, bật `active` và `verified` khi đã xác minh; chỉ bật `recruitmentEnabled` và thêm job `active` khi có tuyển dụng thật. GET jobs lọc đúng chi nhánh, POST apply kiểm tra lại phía server.

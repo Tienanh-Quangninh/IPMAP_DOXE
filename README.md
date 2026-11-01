@@ -67,15 +67,16 @@ Environment variables ở bước build:
 
 `functions/` được Cloudflare nhận diện tự động ở gốc repository, không phải điền vào Build output directory. Dùng Node 24 vì quá trình kiểm thử dùng SQLite của Node. Không đặt Telegram token hoặc Turnstile secret vào biến `VITE_*`.
 
+Dự án dùng **Dashboard** để quản lý biến và bindings, không dùng `wrangler.toml`. Nếu Dashboard vẫn báo cấu hình được quản lý bởi Wrangler, đợi deployment từ commit đã bỏ file này hoàn tất rồi tải lại trang Settings. Chọn `Text` cho `NODE_VERSION`, `VITE_SITE_URL`, `VITE_TURNSTILE_SITE_KEY`; chọn `Secret` cho `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`, `TURNSTILE_SECRET_KEY`. Sau khi đổi biến build, Redeploy để áp dụng.
+
 1. Trong Cloudflare Pages, kết nối GitHub repository `Tienanh-Quangninh/IPMAP_DOXE`, chọn nhánh `main`.
 2. Build command: `npm run build`; output: `dist`; root: thư mục gốc; Functions: `functions/`.
 3. Tạo Turnstile widget cho domain thực tế. Thêm `VITE_TURNSTILE_SITE_KEY` vào biến build công khai. Không đặt secret vào biến frontend.
 4. Thêm secrets `TELEGRAM_BOT_TOKEN` (token mới), `TELEGRAM_CHAT_ID`, `TURNSTILE_SECRET_KEY` trong Cloudflare Pages. Không đưa token vào repository.
-5. Tạo D1 database riêng; điền binding `EVENT_STORE` trong `wrangler.toml` (hoặc cấu hình Pages tương ứng). Áp dụng schema:
+5. Tạo D1 database riêng. Trong Pages → Settings → Bindings, thêm D1 database binding tên `EVENT_STORE` trỏ tới database đó. Áp dụng schema:
 
 ```sh
 npx wrangler d1 create racing-garage-events
-# Điền database_id được trả về vào wrangler.toml trước lệnh tiếp theo.
 npx wrangler d1 execute racing-garage-events --remote --file=shared/schema.sql
 ```
 

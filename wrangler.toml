@@ -1,9 +1,0 @@
-name = "ipmap-doxe"
-compatibility_date = "2026-11-01"
-pages_build_output_dir = "./dist"
-
-# Create a D1 database and add its binding here before enabling POST endpoints.
-# [[d1_databases]]
-# binding = "EVENT_STORE"
-# database_name = "racing-garage-events"
-# database_id = "replace-with-your-database-id"
