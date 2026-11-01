@@ -8,7 +8,7 @@
   --orange: #ff5a1f;
   --muted: #8f9298;
   --line: #ffffff17;
-  --display: 'Arial Narrow', Impact, Arial, sans-serif;
+  --display: Arial, Helvetica, sans-serif;
 }
 * {
   box-sizing: border-box;
