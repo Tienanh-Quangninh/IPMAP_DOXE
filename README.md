@@ -71,7 +71,7 @@ Không có database nên không bảo đảm chống trùng hoặc giới hạn 
 
 Khi đã cấp GPS, cả hai thông báo có vĩ độ, kinh độ, độ chính xác (nếu trình duyệt cung cấp) và **Google Maps vị trí đã chia sẻ**, với query là đúng `latitude,longitude` của khách. Link chi nhánh (nếu có) được ghi riêng. Không dùng Việt Nam, tọa độ cửa hàng hoặc tỉnh suy đoán thay cho vị trí GPS. Nếu không có GPS thì ghi rõ không chia sẻ GPS, chỉ thêm link khu vực đã chọn khi có tỉnh/thành. Không cần Google Maps API key.
 
-`public/images/social-preview.png`: PNG 1200×630, Open Graph/Twitter Cards trong HTML ban đầu cho Facebook/Zalo. `npm run social:image` dựng lại bằng Chrome từ ảnh concept và font có sẵn. `VITE_SITE_URL` quyết định canonical, og:url, og:image, robots và sitemap khi build; đổi domain cần đổi biến rồi Redeploy. Preview Facebook/Zalo thực tế phụ thuộc nền tảng và cache của họ.
+`public/images/social-recruitment-v2.jpg`: JPEG nhẹ 1200×630, Open Graph/Twitter Cards trong HTML ban đầu cho Facebook/Zalo. PNG `social-preview.png` vẫn giữ để tương thích link cũ. `npm run social:image` dựng lại cả hai bằng Chrome từ ảnh concept và font có sẵn. `VITE_SITE_URL` quyết định canonical, og:url, og:image, robots và sitemap khi build; đổi domain cần đổi biến rồi Redeploy. Preview Facebook/Zalo thực tế phụ thuộc nền tảng và cache của họ.
 
 Bản kế hoạch gốc trong `PROJECT-BRIEF.vi.txt`; yêu cầu cập nhật được ghi trong `PLAN.md`. Hợp đồng API tại [shared/README.md](shared/README.md).
 
@@ -85,3 +85,5 @@ Bản kế hoạch gốc trong `PROJECT-BRIEF.vi.txt`; yêu cầu cập nhật �
 ## Cập nhật thương hiệu và catalog
 
 Thương hiệu hiện hành: **Độ Xe Máy**, áp dụng header/footer, hộp thoại, favicon và SEO/social preview. Banner bộ sưu tập và 8 ảnh sản phẩm tải từ các URL doxemay.com theo yêu cầu của chủ dự án, giữ hình gốc và nguồn trong assets-manifest. Danh mục phụ tùng theo hình tham khảo nằm trong categories.json. Giá của các sản phẩm bổ sung để liên hệ tư vấn; không tự gán giá hoặc tuyên bố tồn kho.
+
+SEO hiện dùng title **Độ Xe Máy | Tuyển dụng nhân viên**. Ưu tiên chia sẻ URL production `https://ipmap-doxe.pages.dev/`, không dùng URL hash của deployment cũ. Ảnh OG dùng filename mới để tách cache ảnh phiên bản trước. Facebook Sharing Debugger, Messenger và Zalo có thể hiển thị khác nhau; debugger đọc được ảnh không bảo đảm mọi tin nhắn trên ứng dụng đã cập nhật. Kiểm tra đúng URL đã gửi, đợi deployment mới thành công, thu thập lại link chính trên công cụ nền tảng, rồi gửi một tin mới để đối chiếu. Không dùng việc thêm query string làm bảo đảm xóa cache vì nền tảng có thể chuẩn hóa về og:url.

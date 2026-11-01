@@ -88,5 +88,11 @@
     "sourcePage": "https://doxemay.com/gia-do-dau-den-sung-trau-gsx-r1000-2005-2006/",
     "rights": "Product image from user-requested reference catalog doxemay.com; original marks and source ownership retained.",
     "description": "Exact product reference matching the screenshot supplied by the user."
+  },
+  {
+    "files": ["/images/social-recruitment-v2.jpg"],
+    "source": "Original 1200x630 recruitment share card rendered by scripts/generate-social.mjs, using existing AI motorcycle concept and Be Vietnam Pro",
+    "rights": "Original project layout; concept and font provenance retained in this manifest.",
+    "description": "Versioned lightweight JPEG Open Graph image for Độ Xe Máy recruitment sharing on Messenger/Zalo."
   }
 ]
