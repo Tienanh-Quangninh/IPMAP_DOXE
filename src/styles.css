@@ -2477,3 +2477,31 @@ h1 > span:not(.orange) {
     animation: none !important;
   }
 }
+
+.location-disclosure {
+  padding: 7px 5.3vw;
+  border-bottom: 1px solid var(--line);
+  font-size: 10px;
+  background: #101216;
+  line-height: 1.8;
+}
+.location-disclosure .text-button {
+  font-size: 10px;
+  padding: 0 0 0 9px;
+  color: var(--orange);
+}
+.location-delivery {
+  padding: 0 5.3vw;
+  background: #101216;
+}
+.location-notifier {
+  padding: 12px 0;
+  margin-bottom: 15px;
+  border-bottom: 1px solid var(--line);
+}
+.location-notifier .turnstile {
+  margin: 8px 0;
+}
+.location-notifier .micro {
+  font-size: 10px;
+}

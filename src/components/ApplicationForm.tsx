@@ -1,23 +1,34 @@
-import { useState, type FormEvent } from 'react';
+import { useEffect, useState, type FormEvent } from 'react';
 import { ArrowUpRight, CheckCircle2 } from 'lucide-react';
 import Modal from './Modal';
 import Turnstile from './Turnstile';
 import type { Branch, Job } from '../types';
-import { api, ApiError } from '../services/api';
-import { eventIdFor } from '../services/events';
+import { ApiError } from '../services/api';
+import { eventIdFor, sendEvent } from '../services/events';
 import provinces from '../data/provinces.json';
+import LocationNotifier, { type LocationEvent } from './LocationNotifier';
 export default function ApplicationForm({
   branch,
-  job,
+  job: initialJob,
+  availableJobs = [],
+  locationEvent,
   initialProvince = '',
   onClose,
 }: {
   branch: Branch | null;
   job: Job | null;
+  availableJobs?: Job[];
+  locationEvent?: LocationEvent | null;
   initialProvince?: string;
   onClose: () => void;
 }) {
+  const [jobId, setJobId] = useState(initialJob?.id || availableJobs[0]?.id || '');
+  const job = availableJobs.find((j) => j.id === jobId) || initialJob;
   const [province, setProvince] = useState(branch?.province || initialProvince);
+  useEffect(() => {
+    if (!province && (branch?.province || initialProvince))
+      setProvince(branch?.province || initialProvince);
+  }, [branch?.province, initialProvince, province]);
   const canApply = !!job && (job.scope === 'national' || !!branch);
   const [token, setToken] = useState(''),
     [busy, setBusy] = useState(false),
@@ -50,7 +61,7 @@ export default function ApplicationForm({
     try {
       id = await eventIdFor('apply', payload);
       setEventId(id);
-      await api('apply', { ...payload, eventId: id, turnstileToken: token });
+      await sendEvent('apply', payload, token);
       setSuccess(true);
     } catch (err) {
       if (err instanceof ApiError && err.code === 'DELIVERY_UNKNOWN') setUncertain(true);
@@ -87,7 +98,20 @@ export default function ApplicationForm({
               ? `${job.title} · ${branch?.name || 'Tiếp nhận toàn quốc'}`
               : 'Xem trước biểu mẫu. Chưa có vị trí tuyển dụng được xác minh, hiện chưa tiếp nhận hồ sơ.'}
           </p>
+          {locationEvent && <LocationNotifier event={locationEvent} />}
           <form onSubmit={submit}>
+            {availableJobs.length > 1 && (
+              <label className="field">
+                Vị trí ứng tuyển *
+                <select value={jobId} onChange={(e) => setJobId(e.target.value)}>
+                  {availableJobs.map((j) => (
+                    <option key={j.id} value={j.id}>
+                      {j.title}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            )}
             <label className="field">
               Tỉnh / thành phố mong muốn *
               <select
@@ -194,7 +218,8 @@ export default function ApplicationForm({
             </div>
             {canApply && <Turnstile action="apply" onToken={setToken} resetKey={reset} />}
             <p className="micro">
-              Không gửi giấy tờ tùy thân hoặc thông tin tài chính qua biểu mẫu này.
+              Hồ sơ gửi đến bộ phận tuyển dụng qua Telegram, kèm thời gian, IP và thông tin trình
+              duyệt.
             </p>
             {error && (
               <p className="status-message" role="alert">

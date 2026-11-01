@@ -32,267 +32,25 @@ const browser = await chromium.launch({
   headless: true,
 });
 const errors = [];
+const { expect } = await import('@playwright/test');
 await mkdir('artifacts', { recursive: true });
-try {
-  const context = await browser.newContext({ viewport: { width: 1440, height: 1000 } });
-  await context.addInitScript(() => {
-    window.__gpsRequests = 0;
-    Object.defineProperty(navigator, 'geolocation', {
-      configurable: true,
-      value: {
-        getCurrentPosition(_resolve, reject) {
-          window.__gpsRequests++;
-          queueMicrotask(() => reject({ code: 1, message: 'Permission denied by test' }));
-        },
-      },
-    });
-  });
-  const page = await context.newPage();
-  page.on('pageerror', (e) => errors.push(e.message));
-  const posts = [];
-  await page.route('**/api/**', (route) => {
-    if (route.request().method() === 'POST') posts.push(route.request().url());
-    return route.fulfill({
-      json: route.request().url().includes('/jobs') ? { jobs: [] } : { branches: [] },
-    });
-  });
-  await page.goto(url);
-  await page.waitForFunction(
-    () =>
-      window.__gpsRequests === 1 &&
-      document.querySelector('.branch-button')?.textContent?.includes('Chọn chi nhánh'),
-  );
-  assert.equal(
-    await page.evaluate(() => window.__gpsRequests),
-    1,
-    'GPS must be requested on load, once in StrictMode, before any click',
-  );
-  assert.equal(
-    await page.getByRole('dialog').count(),
-    0,
-    'No initial application modal may block the header',
-  );
-  assert.equal(posts.length, 0, 'Automatic location must not create Telegram events');
-  await page.evaluate(() => document.fonts.ready);
-  for (const selector of ['body', 'h1', '.logo-mark', 'button']) {
-    assert.match(
-      await page
-        .locator(selector)
-        .first()
-        .evaluate((el) => getComputedStyle(el).fontFamily),
-      /Be Vietnam Pro/,
-      'Font must be global: ' + selector,
-    );
-  }
-  assert.equal(
-    await page.evaluate(() => document.fonts.check('900 20px "Be Vietnam Pro"', 'ĐỘ CHẤT RIÊNG')),
-    true,
-  );
-  await page.screenshot({ path: 'artifacts/desktop.png', fullPage: true });
-  await page.locator('#parts').getByRole('button', { name: 'Xe máy', exact: true }).click();
-  assert.equal(await page.locator('.product-card').count(), 2);
-  await page.locator('.product-card').first().click();
-  await page.getByRole('dialog').waitFor();
-  assert.equal(await page.getByText('Chưa mở bán', { exact: true }).count(), 1);
-  await page.keyboard.press('Escape');
-  await page.getByRole('button', { name: 'Bộ lọc', exact: true }).click();
-  await page.getByLabel('Nhóm phụ tùng').selectOption('Mâm & lốp');
-  assert.equal(await page.locator('.product-card').count(), 0);
-  await page.getByRole('button', { name: 'Đặt lại bộ lọc' }).click();
-  assert.equal(await page.locator('.product-card').count(), 4);
-  await page.getByRole('button', { name: 'Chọn chi nhánh', exact: true }).first().click();
-  await page.getByLabel('Tỉnh / thành phố').selectOption('Ninh Bình');
-  await page.getByRole('button', { name: 'Xác nhận khu vực', exact: true }).click();
-  assert.equal(posts.length, 0);
-  assert.match(await page.locator('.branch-button').innerText(), /Ninh Bình/);
-  await page.reload();
-  assert.match(await page.locator('.branch-button').innerText(), /Ninh Bình/);
-  await page.getByRole('button', { name: 'Xem mẫu ứng tuyển' }).click();
-  assert.equal(
-    await page.getByRole('button', { name: 'Chưa mở tiếp nhận hồ sơ' }).isDisabled(),
-    true,
-  );
-  await page.keyboard.press('Escape');
-  await page.locator('.build-card').first().click();
-  await page.getByRole('dialog').waitFor();
-  assert.equal(await page.locator('.build-preview').count(), 1);
-  await page.keyboard.press('Escape');
-  for (const width of [360, 390, 768, 1440]) {
-    await page.setViewportSize({ width, height: 844 });
-    await page.evaluate(() => window.scrollTo(0, 0));
-    assert.equal(
-      await page.evaluate(() => document.documentElement.scrollWidth > innerWidth),
-      false,
-      `Horizontal overflow at ${width}px`,
-    );
-    await page.screenshot({ path: `artifacts/viewport-${width}.png`, fullPage: true });
-  }
-  await page.setViewportSize({ width: 390, height: 844 });
-  await page.getByRole('button', { name: 'Mở menu' }).click();
-  await page.locator('nav').getByRole('link', { name: 'Dịch vụ', exact: true }).click();
-  assert.equal(
-    await page.getByRole('button', { name: 'Mở menu' }).getAttribute('aria-expanded'),
-    'false',
-  );
-  await page.getByRole('button', { name: 'Dữ liệu & quyền riêng tư' }).click();
-  await page.getByRole('button', { name: 'Xóa khu vực đã lưu trên thiết bị' }).click();
-  assert.equal(await page.evaluate(() => localStorage.getItem('rg-region')), null);
-  assert.equal(posts.length, 0);
-  assert.deepEqual(errors, []);
-  const failedImages = await page
-    .locator('img')
-    .evaluateAll((images) =>
-      images.filter((i) => !i.complete || i.naturalWidth === 0).map((i) => i.src),
-    );
-  assert.deepEqual(failedImages, []);
-  console.log(
-    'UI checks passed: automatic GPS request, denied-permission fallback, region consent, persistence, catalog filters, detail dialogs, preview form, mobile navigation, privacy reset, 4 responsive widths, no unexpected POSTs or runtime errors.',
-  );
-  // Exercise configured frontend flows with isolated fixtures and mocked providers.
-  const configured = await browser.newContext({ viewport: { width: 1024, height: 900 } });
-  await configured.addInitScript(() => {
-    window.__gpsRequests = 0;
-    Object.defineProperty(navigator, 'geolocation', {
-      configurable: true,
-      value: {
-        getCurrentPosition(resolve) {
-          window.__gpsRequests++;
-          queueMicrotask(() => resolve({ coords: { latitude: 20.4, longitude: 106.1 } }));
-        },
-      },
-    });
-  });
-  const flow = await configured.newPage();
-  flow.on('pageerror', (e) => errors.push(e.message));
-  const branch = {
-    id: 'fixture-only',
-    name: 'Cơ sở kiểm thử',
-    province: 'Ninh Bình',
-    aliases: [],
-    address: 'Dữ liệu giả lập, không có cơ sở thực',
-    lat: 20.4,
-    lng: 106.1,
-    hotline: '',
-    mapUrl: 'https://example.com',
-    services: [],
-    active: true,
-    verified: true,
-    recruitmentEnabled: true,
-  };
-  const job = {
-    id: 'fixture-job',
-    branchId: branch.id,
-    title: 'Kỹ thuật viên kiểm thử',
-    salary: 'Mức lương kiểm thử',
-    benefits: [],
-    vehicle: 'motorcycle',
-    active: true,
-  };
-  const events = [];
-  await flow.route(
-    'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit',
-    (route) =>
-      route.fulfill({
-        contentType: 'application/javascript',
-        body: "window.turnstile={render(el,opts){el.textContent='Xác minh kiểm thử';queueMicrotask(()=>opts.callback('fixture-token'));return 'mock';},remove(){}};",
-      }),
-  );
-  let applications = 0;
-  await flow.route('**/api/**', (route) => {
-    const req = route.request(),
-      path = new URL(req.url()).pathname;
-    if (req.method() === 'GET')
-      return route.fulfill({
-        json: path.endsWith('branches')
-          ? { branches: [branch] }
-          : path.endsWith('jobs')
-            ? { jobs: [job] }
-            : { province: 'Ninh Bình', source: 'ip' },
-      });
-    const payload = req.postDataJSON();
-    events.push({ path, payload });
-    if (path.endsWith('/apply') && ++applications === 1)
-      return route.fulfill({
-        status: 502,
-        json: {
-          error: 'TELEGRAM_ERROR',
-          message: 'Telegram chưa nhận được thông tin. Vui lòng thử lại.',
-        },
-      });
-    return route.fulfill({ json: { ok: true, eventId: payload.eventId } });
-  });
-  await flow.goto(url);
-  await flow.waitForFunction(
-    () =>
-      window.__gpsRequests === 1 &&
-      document.querySelector('.branch-button')?.textContent?.includes('Cơ sở kiểm thử'),
-  );
-  assert.equal(
-    events.length,
-    0,
-    'Granted GPS must update header without automatically sending Telegram',
-  );
-  assert.equal(await flow.getByRole('dialog').count(), 0);
-  await flow.locator('.branch-button').click();
-  await flow.getByRole('dialog').waitFor();
-  await flow.getByRole('checkbox').check();
-  await flow.getByRole('button', { name: 'Xác nhận & chia sẻ khu vực' }).click();
-  await flow.getByRole('dialog').waitFor({ state: 'hidden' });
-  assert.equal(events.length, 1);
-  assert.match(events[0].path, /location-consent$/);
-  assert.equal(
-    events[0].payload.source,
-    'gps',
-    'Automatic GPS source must be retained when sharing',
-  );
-  assert.deepEqual(
-    Object.keys(events[0].payload).sort(),
-    ['branchId', 'consent', 'eventId', 'province', 'source', 'turnstileToken'].sort(),
-  );
-  await flow.getByRole('dialog', { name: 'Cơ hội nghề nghiệp' }).waitFor({ timeout: 10000 });
-  await flow.getByRole('button', { name: 'Đóng hộp thoại' }).click();
-  await flow.waitForTimeout(7000);
-  assert.equal(await flow.getByRole('dialog').count(), 0, 'Recruitment popup must stay dismissed');
-  await flow.locator('.job-button').click();
-  await flow.getByLabel('Họ và tên').fill('Ứng viên kiểm thử');
-  await flow.getByLabel('Năm sinh').fill('2000');
-  await flow.getByLabel('Số điện thoại').fill('0912345678');
-  await flow.getByLabel('Số năm kinh nghiệm').fill('3');
-  await flow.getByLabel('Kỹ năng chuyên môn').fill('Kiểm thử tư vấn lắp đặt phụ tùng');
-  assert.equal(
-    await flow.getByRole('checkbox').count(),
-    0,
-    'Application should not require the removed checkbox',
-  );
-  await flow.getByRole('button', { name: 'Gửi đơn ứng tuyển' }).click();
-  await flow.getByRole('alert').waitFor();
-  assert.equal(
-    await flow.getByText('ĐÃ TIẾP NHẬN HỒ SƠ.', { exact: true }).count(),
-    0,
-    'Provider error must not show success',
-  );
-  await flow.getByRole('button', { name: 'Gửi đơn ứng tuyển' }).click();
-  await flow.getByText('ĐÃ TIẾP NHẬN HỒ SƠ.', { exact: true }).waitFor();
-  assert.equal(events.length, 3);
-  assert.equal(
-    events[1].payload.eventId,
-    events[2].payload.eventId,
-    'Retry must preserve event ID',
-  );
-  assert.equal(events[1].payload.submitted, true);
-  assert.deepEqual(errors, []);
-  const national = await browser.newContext({ viewport: { width: 390, height: 844 } });
-  await national.addInitScript(() =>
-    Object.defineProperty(navigator, 'geolocation', {
-      value: {
-        getCurrentPosition(_resolve, reject) {
-          reject({ code: 1 });
-        },
-      },
-    }),
-  );
-  const regional = await national.newPage();
-  const nationalJob = {
+const branch = {
+  id: 'fixture-only',
+  name: 'Cơ sở kiểm thử',
+  province: 'Ninh Bình',
+  aliases: [],
+  address: 'Địa chỉ kiểm thử',
+  lat: 20.4,
+  lng: 106.1,
+  hotline: '',
+  mapUrl: 'https://example.com',
+  services: [],
+  active: true,
+  verified: true,
+  recruitmentEnabled: true,
+};
+const jobs = [
+  {
     id: 'customer-support',
     branchId: null,
     scope: 'national',
@@ -301,53 +59,173 @@ try {
     benefits: [],
     vehicle: 'any',
     active: true,
-  };
-  let regionalSubmission;
-  await regional.route(
+  },
+  {
+    id: 'vehicle-technician',
+    branchId: null,
+    scope: 'national',
+    title: 'Kỹ thuật xe',
+    salary: 'Trao đổi khi phỏng vấn',
+    benefits: [],
+    vehicle: 'any',
+    active: true,
+  },
+];
+async function setup(hasBranch = false, region = 'Ninh Bình') {
+  const context = await browser.newContext({ viewport: { width: 1440, height: 1000 } });
+  await context.addInitScript(() => {
+    window.__gpsRequests = 0;
+    Object.defineProperty(navigator, 'geolocation', {
+      configurable: true,
+      value: {
+        getCurrentPosition(resolve, reject) {
+          window.__gpsRequests++;
+          window.__finishLocation = (allow) =>
+            allow ? resolve({ coords: { latitude: 20.4, longitude: 106.1 } }) : reject({ code: 1 });
+        },
+      },
+    });
+  });
+  const page = await context.newPage();
+  page.on('pageerror', (e) => errors.push(e.message));
+  const events = [];
+  let applyCalls = 0;
+  await page.route(
     'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit',
     (route) =>
       route.fulfill({
         contentType: 'application/javascript',
-        body: "window.turnstile={render(el,opts){queueMicrotask(()=>opts.callback('fixture-token'));return 'mock';},remove(){}};",
+        body: "window.turnstile={render(el,opts){el.textContent='Xác minh kiểm thử';queueMicrotask(()=>opts.callback('fixture-'+opts.action+'-'+Math.random()));return 'mock';},remove(){}};",
       }),
   );
-  await regional.route('**/api/**', (route) => {
-    if (route.request().method() === 'POST') {
-      regionalSubmission = route.request().postDataJSON();
-      return route.fulfill({ json: { ok: true, eventId: regionalSubmission.eventId } });
-    }
-    const path = new URL(route.request().url()).pathname;
-    return route.fulfill({
-      json: path.endsWith('/branches')
-        ? { branches: [] }
-        : path.endsWith('/jobs')
-          ? { jobs: [nationalJob] }
-          : { province: null, source: 'ip' },
-    });
+  await page.route('**/api/**', (route) => {
+    const req = route.request(),
+      path = new URL(req.url()).pathname;
+    if (req.method() === 'GET')
+      return route.fulfill({
+        json: path.endsWith('branches')
+          ? { branches: hasBranch ? [branch] : [] }
+          : path.endsWith('jobs')
+            ? { jobs }
+            : { province: region, source: 'ip' },
+      });
+    const payload = req.postDataJSON();
+    events.push({ path, payload });
+    if (path.endsWith('/apply') && ++applyCalls === 1)
+      return route.fulfill({
+        status: 502,
+        json: { error: 'TELEGRAM_ERROR', message: 'Telegram chưa nhận, vui lòng thử lại.' },
+      });
+    return route.fulfill({ json: { ok: true, eventId: payload.eventId } });
   });
-  await regional.goto(url);
-  await regional.locator('.job-button').click();
-  await regional.getByLabel('Tỉnh / thành phố mong muốn').selectOption('Ninh Bình');
-  await regional.getByLabel('Họ và tên').fill('Ứng viên toàn quốc');
-  await regional.getByLabel('Năm sinh').fill('2000');
-  await regional.getByLabel('Số điện thoại').fill('0912345678');
-  await regional.getByLabel('Kỹ năng chuyên môn').fill('Hỗ trợ và chăm sóc khách hàng');
-  await regional.getByRole('button', { name: 'Gửi đơn ứng tuyển' }).click();
-  await regional.getByText('ĐÃ TIẾP NHẬN HỒ SƠ.', { exact: true }).waitFor();
-  assert.equal(regionalSubmission.branchId, null);
-  assert.equal(regionalSubmission.province, 'Ninh Bình');
-  assert.equal(regionalSubmission.jobId, 'customer-support');
-  assert.equal(regionalSubmission.submitted, true);
-  assert.equal('consent' in regionalSubmission, false);
-  await national.close();
-  console.log(
-    'Nationwide intake passed: no physical branch required, province selected, submission works without consent checkbox.',
+  await page.goto(url);
+  await page.waitForFunction(() => window.__gpsRequests === 1);
+  await expect(page.getByRole('dialog')).toHaveCount(0);
+  return { context, page, events };
+}
+try {
+  const denied = await setup(false, null);
+  await denied.page.evaluate(() => window.__finishLocation(false));
+  await expect(denied.page.getByRole('dialog', { name: 'Thông tin ứng tuyển' })).toBeVisible({
+    timeout: 2000,
+  });
+  await expect(denied.page.getByRole('checkbox')).toHaveCount(0);
+  assert.equal(denied.events.length, 0, 'Refusing GPS must not send a location event');
+  await denied.page.getByLabel('Vị trí ứng tuyển').selectOption('vehicle-technician');
+  await expect(denied.page.getByLabel('Vị trí ứng tuyển')).toHaveValue('vehicle-technician');
+  await denied.page.keyboard.press('Escape');
+  await denied.page.waitForTimeout(500);
+  await expect(denied.page.getByRole('dialog')).toHaveCount(0);
+  await denied.page.evaluate(() => document.fonts.ready);
+  assert.match(
+    await denied.page.locator('body').evaluate((el) => getComputedStyle(el).fontFamily),
+    /Be Vietnam Pro/,
   );
-  await configured.close();
+  await denied.page.locator('#parts').getByRole('button', { name: 'Xe máy', exact: true }).click();
+  await expect(denied.page.locator('.product-card')).toHaveCount(2);
+  await denied.page.locator('.product-card').first().click();
+  await expect(denied.page.getByRole('dialog')).toBeVisible();
+  await denied.page.keyboard.press('Escape');
+  for (const width of [360, 390, 768, 1440]) {
+    await denied.page.setViewportSize({ width, height: 844 });
+    await denied.page.evaluate(() => scrollTo(0, 0));
+    assert.equal(
+      await denied.page.evaluate(() => document.documentElement.scrollWidth > innerWidth),
+      false,
+      `Overflow at ${width}`,
+    );
+    await denied.page.screenshot({ path: `artifacts/viewport-${width}.png`, fullPage: true });
+  }
+  await denied.page.locator('.branch-button').click();
+  await denied.page.getByLabel('Tỉnh / thành phố', { exact: false }).selectOption('Ninh Bình');
+  await expect(denied.page.getByRole('checkbox')).toHaveCount(0);
+  await denied.page.getByRole('button', { name: 'Chọn khu vực & xem tuyển dụng' }).click();
+  await expect(denied.page.getByRole('dialog', { name: 'Thông tin ứng tuyển' })).toBeVisible({
+    timeout: 2000,
+  });
+  await expect
+    .poll(() => denied.events.filter((e) => e.path.endsWith('location-consent')).length)
+    .toBe(1);
+  assert.equal(denied.events[0].payload.branchId, null);
+  assert.equal(denied.events[0].payload.source, 'manual');
+  await denied.context.close();
   console.log(
-    'Configured flows passed: granted GPS selects branch automatically in header before click, separate consent event, recruitment popup only once, application validation, provider failure, retry with same ID, confirmed success. No external provider calls.',
+    'Denied GPS checks passed: immediate recruitment form, no location POST until manual selection, no consent checkbox, no repeated popup, 4 responsive widths.',
   );
-  await context.close();
+
+  const granted = await setup(true);
+  await granted.page.evaluate(() => window.__finishLocation(true));
+  await expect(granted.page.getByRole('dialog', { name: 'Thông tin ứng tuyển' })).toBeVisible({
+    timeout: 2000,
+  });
+  await expect
+    .poll(() => granted.events.filter((e) => e.path.endsWith('location-consent')).length)
+    .toBe(1);
+  const loc = granted.events[0].payload;
+  assert.equal(loc.source, 'gps');
+  assert.equal(loc.branchId, branch.id);
+  assert.deepEqual(
+    Object.keys(loc).sort(),
+    ['branchId', 'province', 'source', 'consent', 'eventId', 'turnstileToken'].sort(),
+  );
+  await expect(granted.page.locator('.branch-button')).toContainText(branch.name);
+  await granted.page.getByLabel('Họ và tên').fill('Ứng viên kiểm thử');
+  await granted.page.getByLabel('Năm sinh').fill('2000');
+  await granted.page.getByLabel('Số điện thoại').fill('0912345678');
+  await granted.page.getByLabel('Kỹ năng chuyên môn').fill('Hỗ trợ khách hàng và kỹ thuật xe');
+  await granted.page.getByLabel('Vị trí ứng tuyển').selectOption('vehicle-technician');
+  await expect(granted.page.getByRole('checkbox')).toHaveCount(0);
+  await granted.page.getByRole('button', { name: 'Gửi đơn ứng tuyển' }).click();
+  await expect(granted.page.getByRole('alert')).toBeVisible();
+  await expect(granted.page.getByText('ĐÃ TIẾP NHẬN HỒ SƠ.', { exact: true })).toHaveCount(0);
+  await granted.page.getByRole('button', { name: 'Gửi đơn ứng tuyển' }).click();
+  await expect(granted.page.getByText('ĐÃ TIẾP NHẬN HỒ SƠ.', { exact: true })).toBeVisible();
+  const applies = granted.events.filter((e) => e.path.endsWith('/apply'));
+  assert.equal(applies.length, 2);
+  assert.equal(applies[0].payload.eventId, applies[1].payload.eventId);
+  assert.equal(applies[1].payload.jobId, 'vehicle-technician');
+  assert.equal(applies[1].payload.submitted, true);
+  await granted.page.getByRole('button', { name: 'Hoàn tất', exact: true }).click();
+  await granted.page.waitForTimeout(400);
+  assert.equal(
+    granted.events.filter((e) => e.path.endsWith('location-consent')).length,
+    1,
+    'Remount must not duplicate location delivery',
+  );
+  const unknown = await setup(false, null);
+  await unknown.page.evaluate(() => window.__finishLocation(true));
+  await expect(unknown.page.getByRole('dialog', { name: 'Thông tin ứng tuyển' })).toBeVisible({
+    timeout: 2000,
+  });
+  await expect.poll(() => unknown.events.length).toBe(1);
+  assert.equal(unknown.events[0].payload.branchId, null);
+  assert.equal(unknown.events[0].payload.province, null);
+  await unknown.context.close();
+  assert.deepEqual(errors, []);
+  await granted.context.close();
+  console.log(
+    'Granted GPS checks passed: immediate form, independent location notification, two job choices, no checkbox, provider error/retry same ID and confirmed success; all providers mocked.',
+  );
 } finally {
   await browser.close();
   server?.kill();

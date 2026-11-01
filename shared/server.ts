@@ -1,4 +1,4 @@
-import type { Branch, Env, EventDatabase, FunctionContext, Job, Province } from './types';
+import type { Branch, Env, FunctionContext, Job, Province } from './types';
 import branchesData from '../src/data/branches.json';
 import jobsData from '../src/data/jobs.json';
 import provincesData from '../src/data/provinces.json';
@@ -14,7 +14,16 @@ type EventRow = {
   status: 'pending' | 'sent' | 'failed' | 'unknown';
   requester_hash: string;
   payload_hash: string;
+  expiresAt: number;
 };
+// Best-effort guards for this Worker isolate only; no database/binding required.
+const eventCache = new Map<string, EventRow>();
+const rateCache = new Map<string, { count: number; expiresAt: number }>();
+const MAX_ENTRIES = 2000;
+function prune(now: number) {
+  for (const [key, value] of eventCache) if (value.expiresAt <= now) eventCache.delete(key);
+  for (const [key, value] of rateCache) if (value.expiresAt <= now) rateCache.delete(key);
+}
 
 export class ApiError extends Error {
   constructor(
@@ -160,20 +169,31 @@ export function validateLocation(body: Body, available: Branch[] = branches) {
       'VALIDATION_ERROR',
       'Thông báo khu vực không nhận tọa độ hoặc dữ liệu thiết bị.',
     );
-  const base = { ...common(body), branchId: text(body, 'branchId', 1, 80) };
-  const branch = available.find((b) => b.id === base.branchId && b.active && b.verified);
-  if (!branch)
+  const base = common(body);
+  const branchId =
+    body.branchId == null || body.branchId === '' ? null : text(body, 'branchId', 1, 80);
+  const branch = branchId
+    ? available.find((b) => b.id === branchId && b.active && b.verified)
+    : null;
+  if (branchId && !branch)
     throw new ApiError(
       400,
       'BRANCH_UNAVAILABLE',
       'Chi nhánh chưa được xác minh hoặc chưa hoạt động.',
     );
-  const province = normalizeProvince(text(body, 'province', 1, 80));
-  if (!province || province !== normalizeProvince(branch.province))
-    throw new ApiError(400, 'VALIDATION_ERROR', 'Khu vực không khớp chi nhánh đã chọn.');
+  const province =
+    body.province == null || body.province === ''
+      ? null
+      : normalizeProvince(text(body, 'province', 1, 80));
+  if (
+    (body.province && !province) ||
+    (branch && province !== normalizeProvince(branch.province)) ||
+    (body.source === 'manual' && !province)
+  )
+    throw new ApiError(400, 'VALIDATION_ERROR', 'Khu vực không hợp lệ hoặc không khớp chi nhánh.');
   if (body.source !== 'gps' && body.source !== 'manual')
     throw new ApiError(400, 'VALIDATION_ERROR', 'Nguồn lựa chọn không hợp lệ.');
-  return { ...base, branch, province, source: body.source };
+  return { ...base, branchId: branch?.id || null, branch, province, source: body.source };
 }
 
 export function validateApplication(
@@ -275,14 +295,8 @@ function configured(env: Env): asserts env is Env & {
   TELEGRAM_BOT_TOKEN: string;
   TELEGRAM_CHAT_ID: string;
   TURNSTILE_SECRET_KEY: string;
-  EVENT_STORE: EventDatabase;
 } {
-  if (
-    !env.TELEGRAM_BOT_TOKEN ||
-    !env.TELEGRAM_CHAT_ID ||
-    !env.TURNSTILE_SECRET_KEY ||
-    !env.EVENT_STORE
-  )
+  if (!env.TELEGRAM_BOT_TOKEN || !env.TELEGRAM_CHAT_ID || !env.TURNSTILE_SECRET_KEY)
     throw new ApiError(
       503,
       'NOT_CONFIGURED',
@@ -295,14 +309,12 @@ async function digest(value: string): Promise<string> {
   return Array.from(new Uint8Array(hash), (b) => b.toString(16).padStart(2, '0')).join('');
 }
 
-async function verifyTurnstile(
-  request: Request,
-  secret: string,
-  token: string,
-  eventId: string,
-  action: string,
-) {
-  const body = new URLSearchParams({ secret, response: token, idempotency_key: eventId });
+async function verifyTurnstile(request: Request, secret: string, token: string, action: string) {
+  const body = new URLSearchParams({
+    secret,
+    response: token,
+    idempotency_key: crypto.randomUUID(),
+  });
   const ip = request.headers.get('CF-Connecting-IP');
   if (ip) body.set('remoteip', ip);
   let response: Response;
@@ -372,59 +384,47 @@ export async function dispatchEvent(
 ): Promise<Response> {
   const { request, env } = context;
   configured(env);
-  const db = env.EVENT_STORE;
   const actor = await digest(
-    `${env.TURNSTILE_SECRET_KEY}:${request.headers.get('CF-Connecting-IP') || 'local'}:${input.kind}`,
+    `${env.TURNSTILE_SECRET_KEY}:${env.TELEGRAM_CHAT_ID}:${request.headers.get('CF-Connecting-IP') || 'local'}:${input.kind}`,
   );
   const payload = await digest(JSON.stringify(input.payload));
-  const row = await db
-    .prepare('SELECT status, requester_hash, payload_hash FROM events WHERE id = ?')
-    .bind(input.eventId)
-    .first<EventRow>();
-  if (row) {
-    const reply = previous(row, actor, payload, input.eventId);
+  const cacheKey = `${env.TELEGRAM_CHAT_ID}:${input.kind}:${input.eventId}`;
+  const now = Date.now();
+  prune(now);
+  const old = eventCache.get(cacheKey);
+  if (old) {
+    const reply = previous(old, actor, payload, input.eventId);
     if (reply) return reply;
   }
-  await verifyTurnstile(
-    request,
-    env.TURNSTILE_SECRET_KEY,
-    input.turnstileToken,
-    input.eventId,
-    input.kind === 'LOCATION_CONSENT' ? 'location' : 'apply',
-  );
-  const now = Date.now();
-  const window = Math.floor(now / 600_000);
-  const rateKey = `${actor}:${window}`;
-  const limit = input.kind === 'JOB_APPLICATION' ? 3 : 5;
-  // D1 batch is a transaction. Only one request can claim an event, including retries.
-  const result = await db.batch([
-    db
-      .prepare(
-        'INSERT INTO rate_limits (key, count, expires_at) VALUES (?, 1, ?) ON CONFLICT(key) DO UPDATE SET count = count + 1',
-      )
-      .bind(rateKey, (window + 2) * 600_000),
-    db
-      .prepare(
-        `INSERT INTO events (id, kind, requester_hash, payload_hash, status, created_at, updated_at)
-      SELECT ?, ?, ?, ?, 'pending', ?, ? WHERE (SELECT count FROM rate_limits WHERE key = ?) <= ?
-      ON CONFLICT(id) DO UPDATE SET status = 'pending', updated_at = excluded.updated_at
-      WHERE events.status = 'failed' AND events.requester_hash = excluded.requester_hash AND events.payload_hash = excluded.payload_hash`,
-      )
-      .bind(input.eventId, input.kind, actor, payload, now, now, rateKey, limit),
-    db.prepare('DELETE FROM rate_limits WHERE expires_at < ?').bind(now),
-  ]);
-  if (result.some((r) => !r.success))
-    throw new ApiError(503, 'SERVICE_UNAVAILABLE', 'Chưa lưu được trạng thái tiếp nhận.');
-  if (result[1].meta.changes !== 1) {
-    const existing = await db
-      .prepare('SELECT status, requester_hash, payload_hash FROM events WHERE id = ?')
-      .bind(input.eventId)
-      .first<EventRow>();
-    if (existing) {
-      const reply = previous(existing, actor, payload, input.eventId);
-      if (reply) return reply;
-    }
+  const rateKey = `${actor}:${Math.floor(now / 600000)}`;
+  const rate = rateCache.get(rateKey) || { count: 0, expiresAt: now + 600000 };
+  if (rate.count >= (input.kind === 'JOB_APPLICATION' ? 3 : 5))
     throw new ApiError(429, 'RATE_LIMITED', 'Bạn gửi quá nhiều lần. Vui lòng thử lại sau 10 phút.');
+  if (
+    (!old && eventCache.size >= MAX_ENTRIES) ||
+    (!rateCache.has(rateKey) && rateCache.size >= MAX_ENTRIES)
+  )
+    throw new ApiError(503, 'SERVICE_BUSY', 'Kênh tiếp nhận đang bận, vui lòng thử lại sau.');
+  rate.count++;
+  rateCache.set(rateKey, rate);
+  // Claim before awaiting verification to avoid concurrent sends in this isolate.
+  const row: EventRow = {
+    status: 'pending',
+    requester_hash: actor,
+    payload_hash: payload,
+    expiresAt: now + 1800000,
+  };
+  eventCache.set(cacheKey, row);
+  try {
+    await verifyTurnstile(
+      request,
+      env.TURNSTILE_SECRET_KEY,
+      input.turnstileToken,
+      input.kind === 'LOCATION_CONSENT' ? 'location' : 'apply',
+    );
+  } catch (error) {
+    row.status = 'failed';
+    throw error;
   }
   let response: Response;
   try {
@@ -439,10 +439,7 @@ export async function dispatchEvent(
       signal: AbortSignal.timeout(12_000),
     });
   } catch {
-    await db
-      .prepare("UPDATE events SET status = 'unknown', updated_at = ? WHERE id = ?")
-      .bind(Date.now(), input.eventId)
-      .run();
+    row.status = 'unknown';
     throw new ApiError(
       502,
       'DELIVERY_UNKNOWN',
@@ -453,10 +450,7 @@ export async function dispatchEvent(
   try {
     telegram = (await response.json()) as { ok?: boolean } | null;
   } catch {
-    await db
-      .prepare("UPDATE events SET status = 'unknown', updated_at = ? WHERE id = ?")
-      .bind(Date.now(), input.eventId)
-      .run();
+    row.status = 'unknown';
     throw new ApiError(
       502,
       'DELIVERY_UNKNOWN',
@@ -464,10 +458,7 @@ export async function dispatchEvent(
     );
   }
   if (!telegram || typeof telegram.ok !== 'boolean' || (telegram.ok === true && !response.ok)) {
-    await db
-      .prepare("UPDATE events SET status = 'unknown', updated_at = ? WHERE id = ?")
-      .bind(Date.now(), input.eventId)
-      .run();
+    row.status = 'unknown';
     throw new ApiError(
       502,
       'DELIVERY_UNKNOWN',
@@ -475,10 +466,7 @@ export async function dispatchEvent(
     );
   }
   const sent = response.ok && telegram.ok === true;
-  await db
-    .prepare('UPDATE events SET status = ?, updated_at = ? WHERE id = ?')
-    .bind(sent ? 'sent' : 'failed', Date.now(), input.eventId)
-    .run();
+  row.status = sent ? 'sent' : 'failed';
   if (!sent)
     throw new ApiError(
       502,
@@ -496,4 +484,30 @@ export function serverTime(): string {
       timeStyle: 'medium',
     }).format(new Date()) + ' GMT+7'
   );
+}
+
+export function clientAudit(request: Request): string {
+  const ua = request.headers.get('User-Agent') || '';
+  const browser = /Edg\//.test(ua)
+    ? 'Edge'
+    : /Firefox\//.test(ua)
+      ? 'Firefox'
+      : /Chrome\//.test(ua)
+        ? 'Chrome'
+        : /Safari\//.test(ua)
+          ? 'Safari'
+          : 'Khác';
+  const os = /Android/.test(ua)
+    ? 'Android'
+    : /iPhone|iPad/.test(ua)
+      ? 'iOS'
+      : /Windows/.test(ua)
+        ? 'Windows'
+        : /Macintosh/.test(ua)
+          ? 'macOS'
+          : /Linux/.test(ua)
+            ? 'Linux'
+            : 'Khác';
+  const device = /Mobile|Android|iPhone|iPad/.test(ua) ? 'Di động' : 'Máy tính';
+  return `IP: ${request.headers.get('CF-Connecting-IP') || 'Không có'}\nTrình duyệt: ${browser} / ${os} / ${device}`;
 }

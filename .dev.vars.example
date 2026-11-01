@@ -2,4 +2,3 @@
 TELEGRAM_BOT_TOKEN=
 TELEGRAM_CHAT_ID=-5422361645
 TURNSTILE_SECRET_KEY=
-# EVENT_STORE is a D1 binding, configured in Cloudflare Pages (not a secret string).

@@ -22,6 +22,7 @@ import {
 } from 'lucide-react';
 import BranchSelector from './components/BranchSelector';
 import ApplicationForm from './components/ApplicationForm';
+import LocationNotifier, { type LocationEvent } from './components/LocationNotifier';
 import Modal from './components/Modal';
 import PartArt from './components/PartArt';
 import productsData from './data/products.json';
@@ -70,16 +71,19 @@ export default function App() {
     [branches, setBranches] = useState<Branch[]>(
       (branchData as Branch[]).filter((b) => b.active && b.verified),
     ),
-    [jobs, setJobs] = useState<Job[]>([]);
+    [jobs, setJobs] = useState<Job[]>(
+      (jobsData as Job[]).filter((j) => j.active && j.scope === 'national'),
+    );
   const [locationOpen, setLocationOpen] = useState(false),
     [menu, setMenu] = useState(false),
     [formOpen, setFormOpen] = useState(false),
-    [job, setJob] = useState<Job | null>(null),
-    [recruitOpen, setRecruitOpen] = useState(false);
+    [job, setJob] = useState<Job | null>(null);
   const [locationStatus, setLocationStatus] = useState<'loading' | 'gps' | 'ip' | 'manual'>(
     'loading',
   );
   const manualRegionVersion = useRef(0);
+  const [locationResolved, setLocationResolved] = useState(false);
+  const [locationEvent, setLocationEvent] = useState<LocationEvent | null>(null);
   const [vehicle, setVehicle] = useState('all'),
     [category, setCategory] = useState('all'),
     [model, setModel] = useState('all'),
@@ -95,8 +99,7 @@ export default function App() {
     closeForm = useCallback(() => setFormOpen(false), []),
     closeProduct = useCallback(() => setProduct(null), []),
     closeBuild = useCallback(() => setBuild(null), []),
-    closeRecruit = useCallback(() => {
-      setRecruitOpen(false);
+    markRecruitmentShown = useCallback(() => {
       try {
         sessionStorage.setItem('rg-recruit-dismissed', '1');
       } catch {}
@@ -118,6 +121,12 @@ export default function App() {
       (coords) => coords,
       () => null,
     );
+    gps.then(() => {
+      if (active) {
+        setLocationResolved(true);
+        setLocationOpen(false);
+      }
+    });
     const availableBranches = api<{ branches: Branch[] }>('branches')
       .then((d) => d.branches.filter((b) => b.active && b.verified))
       .catch(() => (branchData as Branch[]).filter((b) => b.active && b.verified));
@@ -136,6 +145,13 @@ export default function App() {
     Promise.all([gps, availableBranches, suggestion]).then(([coords, items, province]) => {
       if (!canUpdate()) return;
       const nearest = coords ? nearestBranch(coords.latitude, coords.longitude, items) : null;
+      if (coords)
+        setLocationEvent({
+          branchId: nearest?.id || null,
+          province: nearest?.province || province || selection.province || null,
+          source: 'gps',
+          consent: true,
+        });
       if (nearest) {
         remember(nearest.province, nearest);
         setLocationStatus('gps');
@@ -151,7 +167,6 @@ export default function App() {
   }, []);
   useEffect(() => {
     let active = true;
-    setJobs([]);
     api<{ jobs: Job[] }>(branch ? `jobs?branchId=${encodeURIComponent(branch.id)}` : 'jobs')
       .then((d) => {
         if (active) setJobs(d.jobs);
@@ -164,18 +179,19 @@ export default function App() {
     };
   }, [branch?.id, branch?.recruitmentEnabled]);
   useEffect(() => {
-    if (!jobs.length || !selection.province || formOpen || locationOpen) return;
+    if (!locationResolved || !jobs.length || formOpen || locationOpen) return;
     let dismissed = false;
     try {
       dismissed = !!sessionStorage.getItem('rg-recruit-dismissed');
     } catch {}
-    if (dismissed) return;
-    const timer = setTimeout(() => setRecruitOpen(true), 6500);
-    return () => clearTimeout(timer);
-  }, [jobs, selection.province, formOpen, locationOpen]);
-  function selectRegion(province: string, b: Branch | null) {
+    if (!dismissed) openApply(jobs[0]);
+  }, [jobs, locationResolved, formOpen, locationOpen]);
+  function selectRegion(province: string, b: Branch | null, source: 'gps' | 'manual' = 'manual') {
     manualRegionVersion.current++;
-    setLocationStatus('manual');
+    setLocationStatus(source);
+    setLocationResolved(true);
+    setLocationEvent({ branchId: b?.id || null, province, source, consent: true });
+    if (jobs.length) openApply(jobs[0]);
     const s = { province, branchId: b?.id || '' };
     setSelection(s);
     try {
@@ -185,7 +201,7 @@ export default function App() {
   function openApply(j: Job | null = null) {
     setJob(j);
     setFormOpen(true);
-    closeRecruit();
+    markRecruitmentShown();
   }
   const shownProducts = products.filter(
     (p) =>
@@ -272,6 +288,18 @@ export default function App() {
           </button>
         </div>
       </header>
+      <div className="location-disclosure micro">
+        Khi cấp quyền vị trí hoặc chọn khu vực, khu vực, IP và thông tin trình duyệt được gửi đến bộ
+        phận tiếp nhận qua Telegram.{' '}
+        <button className="text-button" onClick={() => setPrivacy(true)}>
+          Thông tin dữ liệu
+        </button>
+      </div>
+      {!formOpen && locationEvent && (
+        <div className="location-delivery">
+          <LocationNotifier event={locationEvent} />
+        </div>
+      )}
       <main id="main">
         <section className="hero">
           <picture>
@@ -922,6 +950,18 @@ export default function App() {
           initialBranchId={selection.branchId}
           initialSource={locationStatus === 'gps' ? 'gps' : 'manual'}
           onSelect={selectRegion}
+          onGpsResolved={(result) => {
+            setLocationResolved(true);
+            setLocationStatus(result === 'granted' ? 'gps' : 'manual');
+            if (result === 'granted')
+              setLocationEvent({
+                branchId: branch?.id || null,
+                province: selection.province || null,
+                source: 'gps',
+                consent: true,
+              });
+            if (jobs.length) openApply(jobs[0]);
+          }}
           onClose={closeLocation}
         />
       )}
@@ -929,6 +969,8 @@ export default function App() {
         <ApplicationForm
           branch={branch}
           job={job}
+          availableJobs={jobs}
+          locationEvent={locationEvent}
           initialProvince={selection.province}
           onClose={closeForm}
         />
@@ -985,31 +1027,6 @@ export default function App() {
           </p>
         </Modal>
       )}
-      {recruitOpen && jobs.length > 0 && selection.province && (
-        <Modal title="Cơ hội nghề nghiệp" onClose={closeRecruit}>
-          <p className="eyebrow orange">JOIN THE CREW / {branch?.name || selection.province}</p>
-          <h2>
-            ĐỘI NGŨ ĐANG
-            <br />
-            CHỜ BẠN.
-          </h2>
-          {jobs.map((j) => (
-            <div className="recruit-job" key={j.id}>
-              <h3>{j.title}</h3>
-              <p>{j.salary}</p>
-              <ul>
-                {j.benefits.map((b) => (
-                  <li key={b}>{b}</li>
-                ))}
-              </ul>
-              <button className="button full" onClick={() => openApply(j)}>
-                Ứng tuyển vị trí này
-                <ArrowUpRight size={17} />
-              </button>
-            </div>
-          ))}
-        </Modal>
-      )}
       {privacy && (
         <Modal title="Quyền riêng tư" onClose={closePrivacy}>
           <h2>
@@ -1024,14 +1041,15 @@ export default function App() {
               Telegram.
             </p>
             <p>
-              <strong>Chia sẻ khu vực:</strong> chỉ gửi tên khu vực, chi nhánh, nguồn chọn và thời
-              gian khi bạn đồng ý riêng. Việc chọn khu vực không bắt buộc phải chia sẻ.
+              <strong>Chia sẻ khu vực:</strong> khi cấp quyền GPS hoặc xác nhận chọn khu vực, khu
+              vực, chi nhánh, IP và thông tin trình duyệt được gửi qua Telegram; không gửi tọa độ
+              GPS cá nhân. Khi từ chối GPS, website vẫn mở form tuyển dụng.
             </p>
             <p>
               <strong>Ứng tuyển:</strong> hồ sơ và thời gian được gửi đến bộ phận tuyển dụng qua
-              Telegram khi bạn nhấn gửi đơn. Không gửi IP, thông tin trình duyệt hoặc tọa độ GPS
-              trong hồ sơ. Mã sự kiện, trạng thái và dữ liệu băm phục vụ chống lặp được lưu trong
-              D1.
+              Telegram khi bạn nhấn gửi đơn. Hồ sơ kèm IP và thông tin trình duyệt để bộ phận tiếp
+              nhận kiểm tra. Không gửi tọa độ GPS cá nhân. Mã sự kiện được lưu trong phiên trình
+              duyệt để hạn chế gửi trùng; backend dùng bộ nhớ tạm, không lưu database.
             </p>
             <p>
               <strong>Chống spam:</strong> khi mở biểu mẫu gửi, Cloudflare Turnstile kiểm tra yêu

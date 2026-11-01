@@ -1,27 +1,14 @@
-# Racing Garage — kế hoạch triển khai
+# Racing Garage — yêu cầu hiện hành
 
-Theo bản kế hoạch người dùng gửi ngày 01/11/2026. React + Vite + TypeScript, Cloudflare Pages Functions, Telegram, Turnstile.
+Theo bản kế hoạch gốc PROJECT-BRIEF.vi.txt và các cập nhật của chủ dự án ngày 01/11/2026.
 
-1. Khởi tạo dự án và dữ liệu có cấu trúc. Không công bố cơ sở hoặc tuyển dụng chưa xác minh.
-2. Xây dựng landing page responsive phong cách Racing, gallery, bộ lọc phụ tùng và hộp thoại chi tiết.
-3. Theo yêu cầu cập nhật: tự gọi yêu cầu quyền GPS khi tải trang và cập nhật header; vẫn cần quyền do trình duyệt cấp. Chỉ thông báo Telegram khi người dùng đồng ý chia sẻ riêng.
-4. Form ứng tuyển và popup theo dữ liệu chi nhánh thực tế, xác thực và trạng thái lỗi rõ ràng.
-5. Năm API Pages Functions, Turnstile, Telegram, chống lặp và giới hạn tần suất.
-6. Build, kiểm thử luồng API, kiểm tra giao diện và tài liệu triển khai.
+- React/Vite, Be Vietnam Pro toàn cục, hình concept, bộ lọc phụ tùng, gallery, responsive.
+- Chủ dự án tự cấu hình Cloudflare Pages bằng Dashboard; mã nguồn commit/push GitHub.
+- Tự yêu cầu GPS khi tải, chọn chi nhánh trên thiết bị, IP gợi ý tỉnh/thành; không gửi tọa độ cá nhân.
+- Mở ngay form tuyển dụng khi trình duyệt trả kết quả vị trí, gồm cả từ chối. Không chờ Telegram, không yêu cầu đã chọn tỉnh/chi nhánh trước khi mở. Có hai vị trí toàn quốc: hỗ trợ chăm sóc khách hàng, kỹ thuật xe.
+- Bỏ checkbox cả vị trí và ứng tuyển. Giữ thông tin dữ liệu ngắn gần header/form. Hai thông báo Telegram kèm IP và nhãn trình duyệt từ server cùng thời gian, khu vực và Google Maps.
+- Không dùng database, không yêu cầu EVENT_STORE. Turnstile, kiểm tra đầu vào và chống spam/chống trùng bằng bộ nhớ tạm; không cam kết chống trùng toàn cục/qua restart. Browser giữ biên nhận trong phiên.
+- Năm API, secrets server, ảnh social 1200×630 và metadata/sitemap theo VITE_SITE_URL.
+- Cơ sở chưa có dữ liệu thật vẫn để trống; ứng tuyển toàn quốc theo tỉnh/thành, không tạo địa chỉ giả.
 
-Production cần tên thương hiệu chính thức, danh sách cơ sở đã xác minh, ảnh thương mại, sản phẩm và tuyển dụng thật, secrets Telegram/Turnstile và cấu hình Cloudflare.
-
-## Kết quả triển khai
-
-- Đã dựng giao diện và các tương tác chính, ảnh concept WebP, dữ liệu JSON và năm API.
-- D1 chỉ dùng metadata chống trùng/giới hạn tần suất để bảo đảm xử lý yêu cầu đồng thời; dữ liệu kinh doanh vẫn lưu JSON.
-- Build thành công, 12 kiểm thử backend đạt. Kiểm tra Chrome trên 360/390/768/1440px đạt; hai luồng gửi đã thử với API/provider giả lập, không gửi Telegram thật.
-- Project Cloudflare đã được xóa theo yêu cầu; giữ mã trên GitHub để chủ dự án tự cấu hình Pages. Không tự triển khai lại.
-- Chưa mở tiếp nhận hồ sơ/Telegram vì còn thiếu secrets, D1 và dữ liệu doanh nghiệp thật.
-
-## Cập nhật tuyển dụng
-
-- Tiếp nhận toàn quốc: hỗ trợ chăm sóc khách hàng và kỹ thuật xe, theo yêu cầu chủ dự án.
-- Form nhận tỉnh/thành mà không cần tạo chi nhánh giả; chi nhánh được gắn khi có dữ liệu thực.
-- Bỏ đoạn xác nhận/checkbox ứng tuyển; hồ sơ Telegram không kèm IP hoặc dữ liệu trình duyệt. Vẫn giữ thao tác gửi đơn chủ động, Turnstile, chống trùng và giới hạn tần suất.
-- Chẩn đoán production: chưa có D1 binding EVENT_STORE. Chủ dự án cấu hình qua Dashboard theo README; không tự thay đổi Cloudflare hoặc gửi tin thử thật.
+Kiểm thử API và UI đều dùng provider giả lập, không gửi Telegram thật. Nội dung thương hiệu, ảnh dự án/sản phẩm thật và đầu mối doanh nghiệp sẽ bổ sung khi có dữ liệu.

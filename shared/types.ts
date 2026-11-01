@@ -30,26 +30,10 @@ export interface Province {
   aliases: string[];
 }
 
-// Small structural interfaces keep the Functions independent of generated vendor types.
-export interface D1Result<T = Record<string, unknown>> {
-  results: T[];
-  success: boolean;
-  meta: { changes?: number };
-}
-export interface D1Statement {
-  bind(...values: unknown[]): D1Statement;
-  first<T = Record<string, unknown>>(): Promise<T | null>;
-  run(): Promise<D1Result>;
-}
-export interface EventDatabase {
-  prepare(sql: string): D1Statement;
-  batch(statements: D1Statement[]): Promise<D1Result[]>;
-}
 export interface Env {
   TELEGRAM_BOT_TOKEN?: string;
   TELEGRAM_CHAT_ID?: string;
   TURNSTILE_SECRET_KEY?: string;
-  EVENT_STORE?: EventDatabase;
 }
 export interface FunctionContext {
   request: Request & { cf?: { region?: string; country?: string } };

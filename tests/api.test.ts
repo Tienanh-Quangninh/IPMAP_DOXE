@@ -1,7 +1,5 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { DatabaseSync } from 'node:sqlite';
-import { readFileSync } from 'node:fs';
 import {
   ApiError,
   dispatchEvent,
@@ -11,11 +9,12 @@ import {
   validateApplication,
   validateLocation,
 } from '../shared/server';
-import type { Branch, D1Result, D1Statement, Env, EventDatabase, Job } from '../shared/types';
+import type { Branch, Env, Job } from '../shared/types';
 import { onRequest as getBranches } from '../functions/api/branches';
 import { onRequest as suggestion } from '../functions/api/branch-suggestion';
 import { branchGoogleMaps, googleMapsSearch } from '../shared/maps';
 import { onRequest as applyRoute } from '../functions/api/apply';
+import { onRequest as locationRoute } from '../functions/api/location-consent';
 
 test('Google Maps links encode region queries and use public shop coordinates or address', () => {
   const area = new URL(googleMapsSearch('Ninh Bình & Nam Định, Việt Nam'));
@@ -83,56 +82,15 @@ const request = (body?: unknown) =>
       Origin: 'https://garage.example',
       'Content-Type': 'application/json',
       'CF-Connecting-IP': '192.0.2.1',
+      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0) Chrome/120.0',
     },
     body: JSON.stringify(body ?? valid()),
   });
 
-class SqliteStatement implements D1Statement {
-  private values: unknown[] = [];
-  constructor(
-    private database: DatabaseSync,
-    private sql: string,
-  ) {}
-  bind(...values: unknown[]) {
-    this.values = values;
-    return this;
-  }
-  async first<T>() {
-    return (this.database.prepare(this.sql).get(...(this.values as never[])) ?? null) as T | null;
-  }
-  execute(): D1Result {
-    const result = this.database.prepare(this.sql).run(...(this.values as never[]));
-    return { success: true, results: [], meta: { changes: Number(result.changes) } };
-  }
-  async run(): Promise<D1Result> {
-    return this.execute();
-  }
-}
-class SqliteDB implements EventDatabase {
-  database = new DatabaseSync(':memory:');
-  constructor() {
-    this.database.exec(readFileSync(new URL('../shared/schema.sql', import.meta.url), 'utf8'));
-  }
-  prepare(sql: string) {
-    return new SqliteStatement(this.database, sql);
-  }
-  async batch(statements: D1Statement[]) {
-    this.database.exec('BEGIN');
-    try {
-      const results = statements.map((statement) => (statement as SqliteStatement).execute());
-      this.database.exec('COMMIT');
-      return results;
-    } catch (error) {
-      this.database.exec('ROLLBACK');
-      throw error;
-    }
-  }
-}
 const env = (): Env => ({
   TELEGRAM_BOT_TOKEN: 'mock-secret',
   TELEGRAM_CHAT_ID: '-1',
-  TURNSTILE_SECRET_KEY: 'mock-turnstile',
-  EVENT_STORE: new SqliteDB(),
+  TURNSTILE_SECRET_KEY: crypto.randomUUID(),
 });
 const event = (eventId = crypto.randomUUID()) => ({
   kind: 'JOB_APPLICATION' as const,
@@ -355,7 +313,7 @@ test('Turnstile rejects another hostname before any event is claimed', async (t)
   assert.equal(calls(), 1);
 });
 
-test('national application accepts a selected province without a physical branch and excludes diagnostic data from Telegram', async (t) => {
+test('national application accepts a selected province without a physical branch without database and includes server IP/browser in Telegram', async (t) => {
   let message = '';
   t.mock.method(globalThis, 'fetch', async (url: string | URL | Request, options?: RequestInit) => {
     if (String(url).includes('siteverify'))
@@ -369,8 +327,35 @@ test('national application accepts a selected province without a physical branch
   assert.match(message, /Hỗ trợ chăm sóc khách hàng/);
   assert.match(message, /Ninh Bình/);
   assert.match(message, /https:\/\/www.google.com\/maps\/search/);
-  assert.doesNotMatch(message, /192\.0\.2\.1|IP:|Thiết bị:|Trình duyệt:/);
+  assert.match(message, /IP: 192\.0\.2\.1/);
+  assert.match(message, /Trình duyệt: Chrome \/ Windows/);
   assert.throws(() => validateApplication({ ...body, province: 'Unknown' }), ApiError);
   assert.throws(() => validateApplication({ ...body, branchId: 'invented-branch' }), ApiError);
   assert.throws(() => validateApplication({ ...body, submitted: false }), ApiError);
+});
+
+test('location can send coarse region without a branch or database and includes server audit', async (t) => {
+  let message = '';
+  t.mock.method(globalThis, 'fetch', async (url: string | URL | Request, options?: RequestInit) => {
+    if (String(url).includes('siteverify'))
+      return Response.json({ success: true, hostname: 'garage.example', action: 'location' });
+    message = JSON.parse(String(options?.body)).text;
+    return Response.json({ ok: true });
+  });
+  const body = {
+    eventId: crypto.randomUUID(),
+    branchId: null,
+    province: 'Nam Định',
+    source: 'gps',
+    consent: true,
+    turnstileToken: 'mock',
+  };
+  const response = await locationRoute({ request: request(body), env: env() });
+  assert.equal(response.status, 200);
+  assert.match(message, /Ninh Bình/);
+  assert.match(message, /IP: 192\.0\.2\.1/);
+  assert.match(message, /Chrome \/ Windows/);
+  assert.match(message, /www.google.com\/maps/);
+  assert.throws(() => validateLocation({ ...body, latitude: 20 }), ApiError);
+  assert.equal(validateLocation({ ...body, province: null }).province, null);
 });

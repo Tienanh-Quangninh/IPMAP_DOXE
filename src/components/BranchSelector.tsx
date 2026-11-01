@@ -1,11 +1,9 @@
 import { useState } from 'react';
 import { MapPin, Navigation, ArrowRight, Info } from 'lucide-react';
 import Modal from './Modal';
-import Turnstile from './Turnstile';
 import provinces from '../data/provinces.json';
 import type { Branch } from '../types';
-import { api, ApiError, nearestBranch } from '../services/api';
-import { eventIdFor } from '../services/events';
+import { api, nearestBranch } from '../services/api';
 import { requestBrowserLocation } from '../services/location';
 
 export default function BranchSelector({
@@ -14,24 +12,22 @@ export default function BranchSelector({
   initialBranchId = '',
   initialSource = 'manual',
   onSelect,
+  onGpsResolved,
   onClose,
 }: {
   branches: Branch[];
   initialProvince: string;
   initialBranchId?: string;
   initialSource?: 'gps' | 'manual';
-  onSelect: (province: string, branch: Branch | null) => void;
+  onSelect: (province: string, branch: Branch | null, source?: 'gps' | 'manual') => void;
+  onGpsResolved?: (result: 'granted' | 'denied') => void;
   onClose: () => void;
 }) {
   const [province, setProvince] = useState(initialProvince),
     [branchId, setBranchId] = useState(initialBranchId),
-    [sharing, setSharing] = useState(false),
     [source, setSource] = useState<'gps' | 'manual'>(initialSource);
   const [message, setMessage] = useState(''),
-    [busy, setBusy] = useState(false),
-    [token, setToken] = useState(''),
-    [reset, setReset] = useState(0),
-    [uncertain, setUncertain] = useState(false);
+    [busy, setBusy] = useState(false);
   const matches = branches.filter((b) => b.province === province);
   const branch =
     branches.find((b) => b.id === branchId) || (matches.length === 1 ? matches[0] : null);
@@ -45,13 +41,20 @@ export default function BranchSelector({
         setProvince(nearest.province);
         setBranchId(nearest.id);
         setSource('gps');
-        setMessage('Đã chọn cơ sở gần nhất theo GPS được cấp quyền.');
-      } else
-        setMessage(
-          'Đã nhận GPS, nhưng chưa có dữ liệu cơ sở đã xác minh để đối chiếu. Bạn có thể chọn tỉnh/thành thủ công.',
-        );
+        onSelect(nearest.province, nearest, 'gps');
+        onClose();
+      } else if (province) {
+        onSelect(province, null, 'gps');
+        onClose();
+      } else {
+        onGpsResolved?.('granted');
+        onClose();
+      }
     } catch {
-      setMessage('Chưa nhận được quyền vị trí. Bạn vẫn có thể chọn khu vực thủ công.');
+      if (onGpsResolved) {
+        onGpsResolved('denied');
+        onClose();
+      } else setMessage('Chưa nhận được quyền vị trí. Bạn vẫn có thể chọn khu vực thủ công.');
     } finally {
       setBusy(false);
     }
@@ -73,34 +76,10 @@ export default function BranchSelector({
       setBusy(false);
     }
   }
-  async function submit() {
+  function submit() {
     if (!province) return;
-    setMessage('');
-    if (sharing && branch) {
-      if (uncertain) return;
-      if (!token) {
-        setMessage('Vui lòng hoàn thành xác minh bảo mật.');
-        return;
-      }
-      setBusy(true);
-      try {
-        const payload = { province, branchId: branch.id, source, consent: true };
-        const eventId = await eventIdFor('location', payload);
-        await api('location-consent', { ...payload, eventId, turnstileToken: token });
-        onSelect(province, branch);
-        onClose();
-      } catch (e) {
-        if (e instanceof ApiError && e.code === 'DELIVERY_UNKNOWN') setUncertain(true);
-        setMessage((e as Error).message);
-        setToken('');
-        setReset((n) => n + 1);
-      } finally {
-        setBusy(false);
-      }
-    } else {
-      onSelect(province, branch);
-      onClose();
-    }
+    onSelect(province, branch, source);
+    onClose();
   }
   return (
     <Modal title="Chọn chi nhánh" onClose={onClose}>
@@ -165,8 +144,8 @@ export default function BranchSelector({
           <div className="info-box">
             <Info size={18} />
             <span>
-              Chưa công bố chi nhánh đã xác minh tại {province}. Khu vực bạn chọn chỉ lưu trên thiết
-              bị này.
+              Chưa công bố chi nhánh đã xác minh tại {province}. Bạn có thể ứng tuyển theo
+              tỉnh/thành đã chọn.
             </span>
           </div>
         ) : (
@@ -181,22 +160,10 @@ export default function BranchSelector({
             </div>
           )
         ))}
-      {branch && (
-        <>
-          <label className="checkbox">
-            <input
-              type="checkbox"
-              checked={sharing}
-              onChange={(e) => setSharing(e.target.checked)}
-            />
-            <span>
-              Tôi đồng ý gửi tên khu vực, chi nhánh và nguồn chọn đến bộ phận vận hành qua Telegram.
-              Không gửi tọa độ chính xác hoặc IP.
-            </span>
-          </label>
-          {sharing && <Turnstile action="location" onToken={setToken} resetKey={reset} />}
-        </>
-      )}
+      <p className="micro">
+        Khi xác nhận, khu vực đã chọn, IP và trình duyệt được gửi đến bộ phận tiếp nhận qua
+        Telegram.
+      </p>
       {message && (
         <p className="status-message" role="status">
           {message}
@@ -204,10 +171,10 @@ export default function BranchSelector({
       )}
       <button
         className="button full"
-        disabled={!province || busy || (sharing && uncertain) || (matches.length > 1 && !branch)}
+        disabled={!province || busy || (matches.length > 1 && !branch)}
         onClick={submit}
       >
-        {sharing && branch ? 'Xác nhận & chia sẻ khu vực' : 'Xác nhận khu vực'}
+        Chọn khu vực & xem tuyển dụng
         <ArrowRight size={17} />
       </button>
       <button className="text-button full" onClick={onClose}>
