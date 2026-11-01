@@ -219,7 +219,7 @@ export function validateLocation(body: Body, available: Branch[] = branches) {
     (body.source === 'manual' && !province)
   )
     throw new ApiError(400, 'VALIDATION_ERROR', 'Khu vực không hợp lệ hoặc không khớp chi nhánh.');
-  if (body.source !== 'gps' && body.source !== 'manual')
+  if (body.source !== 'gps' && body.source !== 'manual' && body.source !== 'visit')
     throw new ApiError(400, 'VALIDATION_ERROR', 'Nguồn lựa chọn không hợp lệ.');
   const position = readPosition(body.position);
   if (body.source === 'gps' && !position)
@@ -228,7 +228,7 @@ export function validateLocation(body: Body, available: Branch[] = branches) {
       'GPS_REQUIRED',
       'Chưa nhận được tọa độ GPS đã chia sẻ. Vui lòng tải lại trang và cấp quyền vị trí.',
     );
-  if (body.source === 'manual' && position)
+  if (body.source !== 'gps' && position)
     throw new ApiError(400, 'VALIDATION_ERROR', 'Chọn thủ công không phải chia sẻ GPS.');
   return { ...base, branchId: branch?.id || null, branch, province, source: body.source, position };
 }

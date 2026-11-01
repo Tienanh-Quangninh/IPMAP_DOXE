@@ -1,12 +1,16 @@
 // Persist only a random ID and a digest; applicant details never enter web storage.
 import { api, ApiError } from './api';
 type Receipt = { hash: string; id: string; status?: 'sent' | 'unknown' };
+// A new document load starts a new visit; remounts and retries keep the same receipt.
+const pageVisitId = crypto.randomUUID();
 const deliveries = new Map<string, Promise<{ ok: boolean; eventId: string }>>();
 const memory = new Map<string, Receipt>();
 export async function eventIdFor(kind: 'apply' | 'location', payload: unknown): Promise<string> {
   const bytes = await crypto.subtle.digest(
     'SHA-256',
-    new TextEncoder().encode(JSON.stringify(payload)),
+    new TextEncoder().encode(
+      JSON.stringify(kind === 'location' ? { pageVisitId, payload } : payload),
+    ),
   );
   const hash = Array.from(new Uint8Array(bytes), (v) => v.toString(16).padStart(2, '0')).join('');
   const key = `rg-event-${kind}`;

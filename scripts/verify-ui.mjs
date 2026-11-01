@@ -132,7 +132,9 @@ try {
     timeout: 2000,
   });
   await expect(denied.page.getByRole('checkbox')).toHaveCount(0);
-  assert.equal(denied.events.length, 0, 'Refusing GPS must not send a location event');
+  await expect.poll(() => denied.events.length).toBe(1);
+  assert.equal(denied.events[0].payload.source, 'visit');
+  assert.equal(denied.events.at(-1).payload.position, null);
   await denied.page.getByLabel('Vị trí ứng tuyển').selectOption('vehicle-technician');
   await expect(denied.page.getByLabel('Vị trí ứng tuyển')).toHaveValue('vehicle-technician');
   await denied.page.keyboard.press('Escape');
@@ -177,13 +179,13 @@ try {
   });
   await expect
     .poll(() => denied.events.filter((e) => e.path.endsWith('location-consent')).length)
-    .toBe(1);
-  assert.equal(denied.events[0].payload.branchId, null);
-  assert.equal(denied.events[0].payload.source, 'manual');
-  assert.equal(denied.events[0].payload.position, null);
+    .toBe(2);
+  assert.equal(denied.events.at(-1).payload.branchId, null);
+  assert.equal(denied.events.at(-1).payload.source, 'manual');
+  assert.equal(denied.events.at(-1).payload.position, null);
   await denied.context.close();
   console.log(
-    'Denied GPS checks passed: immediate recruitment form, no location POST until manual selection, no consent checkbox, no repeated popup, 4 responsive widths.',
+    'Denied GPS checks passed: immediate recruitment form, visit notification without GPS, separate manual selection, no consent checkbox, no repeated popup, 4 responsive widths.',
   );
 
   const granted = await setup(true);
@@ -233,6 +235,19 @@ try {
     1,
     'Remount must not duplicate location delivery',
   );
+  await granted.page.reload();
+  await granted.page.waitForFunction(() => window.__gpsRequests === 1);
+  await granted.page.evaluate(() => window.__finishLocation(true));
+  await expect
+    .poll(() => granted.events.filter((e) => e.path.endsWith('location-consent')).length)
+    .toBe(2);
+  const revisited = granted.events.filter((e) => e.path.endsWith('location-consent'))[1].payload;
+  assert.notEqual(
+    revisited.eventId,
+    loc.eventId,
+    'Reload starts a new visit even with identical GPS',
+  );
+  assert.deepEqual(revisited.position, loc.position);
   const unknown = await setup(false, null);
   await unknown.page.evaluate(() => window.__finishLocation(true));
   await expect(unknown.page.getByRole('dialog', { name: 'Thông tin ứng tuyển' })).toBeVisible({

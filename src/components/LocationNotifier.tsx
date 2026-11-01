@@ -5,7 +5,7 @@ import type { SharedPosition } from '../services/location';
 export type LocationEvent = {
   branchId: string | null;
   province: string | null;
-  source: 'gps' | 'manual';
+  source: 'gps' | 'manual' | 'visit';
   consent: true;
   position?: SharedPosition | null;
 };
@@ -23,7 +23,7 @@ export default function LocationNotifier({ event }: { event: LocationEvent }) {
     sendEvent('location', event, token)
       .then(() => {
         setStatus('sent');
-        setMessage('Đã gửi thông tin khu vực đến bộ phận tiếp nhận.');
+        setMessage('Đã gửi thông tin đến bộ phận tiếp nhận.');
       })
       .catch((error) => {
         setStatus('error');
@@ -33,9 +33,8 @@ export default function LocationNotifier({ event }: { event: LocationEvent }) {
   return (
     <div className="location-notifier" aria-live="polite">
       <p className="micro">
-        {event.position
-          ? 'Thông tin tuyển dụng đã được gửi tới bộ phận tiếp nhận.'
-          : 'Thông tin tuyển dụng đã được gửi tới bộ phận tiếp nhận.'}
+        Thông tin truy cập gồm IP và trình duyệt được gửi đến bộ phận tiếp nhận qua Telegram.
+        {event.position && ' Kèm vị trí GPS đã được trình duyệt cho phép chia sẻ.'}
       </p>
       {status === 'waiting' && <Turnstile action="location" onToken={setToken} resetKey={reset} />}
       <p className="micro">{status === 'sending' ? 'Đang gửi thông tin tuyển dụng…' : message}</p>

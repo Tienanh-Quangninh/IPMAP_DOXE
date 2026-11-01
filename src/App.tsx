@@ -149,14 +149,13 @@ export default function App() {
     Promise.all([gps, availableBranches, suggestion]).then(([coords, items, province]) => {
       if (!active) return;
       const nearest = coords ? nearestBranch(coords.latitude, coords.longitude, items) : null;
-      if (coords)
-        setLocationEvent({
-          branchId: nearest?.id || null,
-          province: nearest?.province || province || selection.province || null,
-          source: 'gps',
-          position: coords,
-          consent: true,
-        });
+      setLocationEvent({
+        branchId: nearest?.id || null,
+        province: nearest?.province || province || selection.province || null,
+        source: coords ? 'gps' : 'visit',
+        position: coords,
+        consent: true,
+      });
       if (!canUpdate()) return;
       if (nearest) {
         remember(nearest.province, nearest);
@@ -1104,6 +1103,11 @@ export default function App() {
               <strong>Khu vực:</strong> tỉnh/thành và mã chi nhánh được lưu tại trình duyệt để ghi
               nhớ lựa chọn. Khi bạn cấp quyền GPS, tọa độ vị trí được gửi đến Telegram kèm link
               Google Maps; tọa độ không được lưu trong trình duyệt hoặc database.
+            </p>
+            <p>
+              <strong>Truy cập:</strong> mỗi lần mở hoặc tải lại trang, IP, thông tin trình duyệt và
+              thời gian truy cập được gửi qua Telegram, kể cả khi từ chối GPS. Chỉ gửi GPS khi trình
+              duyệt cho phép.
             </p>
             <p>
               <strong>Chia sẻ khu vực:</strong> khi cấp quyền GPS hoặc xác nhận chọn khu vực, khu

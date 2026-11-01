@@ -433,3 +433,21 @@ test('both Telegram notifications pin visitor GPS independently of the selected 
     ApiError,
   );
 });
+
+test('visit notifications accept no GPS and reject attached coordinates', () => {
+  const visit = {
+    eventId: crypto.randomUUID(),
+    turnstileToken: 'test-token',
+    consent: true,
+    branchId: null,
+    province: null,
+    source: 'visit',
+    position: null,
+  };
+  assert.equal(validateLocation(visit).source, 'visit');
+  assert.equal(validateLocation(visit).position, null);
+  assert.throws(
+    () => validateLocation({ ...visit, position: { latitude: 21, longitude: 107 } }),
+    ApiError,
+  );
+});
