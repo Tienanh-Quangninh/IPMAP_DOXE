@@ -500,9 +500,14 @@ export async function dispatchEvent(
       'Chưa xác định Telegram đã nhận hay chưa. Không gửi lại; hãy lưu mã sự kiện để đối soát.',
     );
   }
-  let telegram: { ok?: boolean } | null;
+  let telegram: {
+    ok?: boolean;
+    error_code?: number;
+    description?: string;
+    parameters?: { retry_after?: number; migrate_to_chat_id?: number };
+  } | null;
   try {
-    telegram = (await response.json()) as { ok?: boolean } | null;
+    telegram = (await response.json()) as typeof telegram;
   } catch {
     row.status = 'unknown';
     throw new ApiError(
@@ -521,12 +526,51 @@ export async function dispatchEvent(
   }
   const sent = response.ok && telegram.ok === true;
   row.status = sent ? 'sent' : 'failed';
-  if (!sent)
-    throw new ApiError(
-      502,
-      'TELEGRAM_ERROR',
-      'Telegram chưa nhận được thông tin. Vui lòng xác thực lại và thử lại.',
-    );
+  if (!sent) {
+    const providerCode = Number.isInteger(telegram.error_code)
+      ? telegram.error_code
+      : response.status;
+    const description =
+      typeof telegram.description === 'string' ? telegram.description.toLowerCase() : '';
+    let reason = 'REJECTED';
+    let message =
+      'Telegram từ chối thông báo. Vui lòng liên hệ quản trị viên kiểm tra cấu hình bot.';
+    if (providerCode === 401 || providerCode === 404) {
+      reason = 'TOKEN_INVALID';
+      message =
+        'Telegram: token bot không hợp lệ hoặc đã bị thu hồi. Quản trị viên cần kiểm tra TELEGRAM_BOT_TOKEN trên Cloudflare rồi triển khai lại.';
+    } else if (telegram.parameters?.migrate_to_chat_id) {
+      reason = 'CHAT_MIGRATED';
+      message =
+        'Telegram: nhóm đã đổi sang supergroup. Quản trị viên cần cập nhật TELEGRAM_CHAT_ID rồi triển khai lại.';
+    } else if (providerCode === 400 && description.includes('chat not found')) {
+      reason = 'CHAT_NOT_FOUND';
+      message =
+        'Telegram: không tìm thấy chat nhận. Kiểm tra TELEGRAM_CHAT_ID; với chat cá nhân, mở bot và nhấn Start; với nhóm, thêm bot vào đúng nhóm.';
+    } else if (
+      providerCode === 403 ||
+      (providerCode === 400 && description.includes('not enough rights'))
+    ) {
+      reason = 'CHAT_FORBIDDEN';
+      message =
+        'Telegram: bot không có quyền gửi tin. Kiểm tra bot bị chặn, bị xóa khỏi nhóm hoặc chưa được cấp quyền đăng trong kênh.';
+    } else if (providerCode === 429) {
+      reason = 'RATE_LIMITED';
+      const seconds = telegram.parameters?.retry_after;
+      message =
+        Number.isInteger(seconds) && seconds! > 0 && seconds! <= 86400
+          ? `Telegram giới hạn gửi tin. Vui lòng thử lại sau ${seconds} giây.`
+          : 'Telegram giới hạn gửi tin. Vui lòng đợi một lúc rồi thử lại.';
+    }
+    // Never log provider descriptions, token URLs, chat IDs or visitor data.
+    console.error('telegram_delivery_rejected', {
+      eventId: input.eventId,
+      httpStatus: response.status,
+      providerCode,
+      reason,
+    });
+    throw new ApiError(502, 'TELEGRAM_ERROR', message);
+  }
   return json({ ok: true, eventId: input.eventId });
 }
 

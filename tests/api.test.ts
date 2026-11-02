@@ -252,6 +252,74 @@ test('known Telegram rejection is retryable using the same event ID', async (t) 
   assert.equal(attempt, 2);
 });
 
+test('Telegram failures explain configuration, permissions and rate limits without exposing provider data', async (t) => {
+  const cases = [
+    { status: 401, description: 'Unauthorized', expected: /TELEGRAM_BOT_TOKEN/ },
+    { status: 404, description: 'Not Found', expected: /TELEGRAM_BOT_TOKEN/ },
+    { status: 400, description: 'Bad Request: chat not found', expected: /TELEGRAM_CHAT_ID/ },
+    {
+      status: 403,
+      description: 'Forbidden: bot was blocked by the user',
+      expected: /không có quyền/,
+    },
+    {
+      status: 400,
+      description: 'Bad Request: not enough rights to send text',
+      expected: /không có quyền/,
+    },
+    {
+      status: 429,
+      description: 'Too Many Requests',
+      parameters: { retry_after: 35 },
+      expected: /35 giây/,
+    },
+    {
+      status: 400,
+      description: 'migrated',
+      parameters: { migrate_to_chat_id: -100123 },
+      expected: /supergroup/,
+    },
+    {
+      status: 400,
+      description: 'secret-provider-description-with-private-data',
+      expected: /từ chối/,
+    },
+  ];
+  for (const item of cases) {
+    await t.test(String(item.status) + ' ' + item.description, async (sub) => {
+      const logs: unknown[] = [];
+      sub.mock.method(console, 'error', (...args: unknown[]) => logs.push(args));
+      mockNetwork(sub, () =>
+        Response.json(
+          {
+            ok: false,
+            error_code: item.status,
+            description: item.description,
+            parameters: item.parameters,
+          },
+          { status: item.status },
+        ),
+      );
+      const input = event();
+      const environment = env();
+      const response = await route('POST', (context) => dispatchEvent(context, input))({
+        request: request(),
+        env: environment,
+      });
+      assert.equal(response.status, 502);
+      const body = await response.json();
+      assert.equal(body.error, 'TELEGRAM_ERROR');
+      assert.match(body.message, item.expected);
+      const log = JSON.stringify(logs);
+      assert.match(log, /telegram_delivery_rejected/);
+      assert.match(log, new RegExp(input.eventId));
+      assert.equal(log.includes(environment.TELEGRAM_BOT_TOKEN!), false);
+      assert.equal(log.includes(item.description), false);
+      assert.doesNotMatch(log, /192\.0\.2\.1|private-data/);
+    });
+  }
+});
+
 test('network timeout preserves an unknown state and never auto-sends again', async (t) => {
   const calls = mockNetwork(t, () => {
     throw new Error('simulated timeout');
