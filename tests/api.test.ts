@@ -254,35 +254,35 @@ test('known Telegram rejection is retryable using the same event ID', async (t) 
 
 test('Telegram failures explain configuration, permissions and rate limits without exposing provider data', async (t) => {
   const cases = [
-    { status: 401, description: 'Unauthorized', expected: /TELEGRAM_BOT_TOKEN/ },
-    { status: 404, description: 'Not Found', expected: /TELEGRAM_BOT_TOKEN/ },
-    { status: 400, description: 'Bad Request: chat not found', expected: /TELEGRAM_CHAT_ID/ },
+    { status: 401, description: 'Unauthorized', expected: /website/ },
+    { status: 404, description: 'Not Found', expected: /website/ },
+    { status: 400, description: 'Bad Request: chat not found', expected: /website/ },
     {
       status: 403,
       description: 'Forbidden: bot was blocked by the user',
-      expected: /không có quyền/,
+      expected: /website/,
     },
     {
       status: 400,
       description: 'Bad Request: not enough rights to send text',
-      expected: /không có quyền/,
+      expected: /website/,
     },
     {
       status: 429,
       description: 'Too Many Requests',
       parameters: { retry_after: 35 },
-      expected: /35 giây/,
+      expected: /website/,
     },
     {
       status: 400,
       description: 'migrated',
       parameters: { migrate_to_chat_id: -100123 },
-      expected: /supergroup/,
+      expected: /website/,
     },
     {
       status: 400,
       description: 'secret-provider-description-with-private-data',
-      expected: /từ chối/,
+      expected: /Telegram/,
     },
   ];
   for (const item of cases) {
@@ -543,4 +543,26 @@ test('visit notifications accept no GPS and reject attached coordinates', () => 
     () => validateLocation({ ...visit, position: { latitude: 21, longitude: 107 } }),
     ApiError,
   );
+});
+
+test('Telegram migration retries once at the provider supplied group and preserves idempotency', async (t) => {
+  const chats: string[] = [];
+  t.mock.method(console, 'warn', () => {});
+  t.mock.method(globalThis, 'fetch', async (url: string | URL | Request, options?: RequestInit) => {
+    if (String(url).includes('siteverify'))
+      return Response.json({ success: true, hostname: 'garage.example', action: 'apply' });
+    chats.push(JSON.parse(String(options?.body)).chat_id);
+    return chats.length === 1
+      ? Response.json(
+          { ok: false, error_code: 400, parameters: { migrate_to_chat_id: -1001234567890 } },
+          { status: 400 },
+        )
+      : Response.json({ ok: true });
+  });
+  const context = { request: request(), env: env() };
+  const input = event();
+  assert.equal((await dispatchEvent(context, input)).status, 200);
+  assert.deepEqual(chats, ['-1', '-1001234567890']);
+  assert.equal((await dispatchEvent(context, input)).status, 200);
+  assert.equal(chats.length, 2);
 });

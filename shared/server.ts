@@ -480,48 +480,79 @@ export async function dispatchEvent(
     row.status = 'failed';
     throw error;
   }
-  let response: Response;
-  try {
-    response = await fetch(`https://api.telegram.org/bot${env.TELEGRAM_BOT_TOKEN}/sendMessage`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        chat_id: env.TELEGRAM_CHAT_ID,
-        text: input.message,
-        link_preview_options: { is_disabled: true },
-      }),
-      signal: AbortSignal.timeout(12_000),
-    });
-  } catch {
-    row.status = 'unknown';
-    throw new ApiError(
-      502,
-      'DELIVERY_UNKNOWN',
-      'Chưa xác định Telegram đã nhận hay chưa. Không gửi lại; hãy lưu mã sự kiện để đối soát.',
-    );
-  }
-  let telegram: {
+  let response!: Response;
+  let telegram!: {
     ok?: boolean;
     error_code?: number;
     description?: string;
     parameters?: { retry_after?: number; migrate_to_chat_id?: number };
   } | null;
-  try {
-    telegram = (await response.json()) as typeof telegram;
-  } catch {
+  let targetChatId = env.TELEGRAM_CHAT_ID;
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      response = await fetch(`https://api.telegram.org/bot${env.TELEGRAM_BOT_TOKEN}/sendMessage`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          chat_id: targetChatId,
+          text: input.message,
+          link_preview_options: { is_disabled: true },
+        }),
+        signal: AbortSignal.timeout(12_000),
+      });
+    } catch {
+      row.status = 'unknown';
+      throw new ApiError(
+        502,
+        'DELIVERY_UNKNOWN',
+        'Chưa xác định Telegram đã nhận hay chưa. Không gửi lại; hãy lưu mã sự kiện để đối soát.',
+      );
+    }
+    try {
+      telegram = (await response.json()) as typeof telegram;
+    } catch {
+      row.status = 'unknown';
+      throw new ApiError(
+        502,
+        'DELIVERY_UNKNOWN',
+        'Chưa xác định kết quả tiếp nhận. Vui lòng lưu mã sự kiện để đối soát.',
+      );
+    }
+    if (!telegram || typeof telegram.ok !== 'boolean' || (telegram.ok === true && !response.ok)) {
+      row.status = 'unknown';
+      throw new ApiError(
+        502,
+        'DELIVERY_UNKNOWN',
+        'Phản hồi Telegram chưa xác định được kết quả. Vui lòng lưu mã sự kiện để đối soát.',
+      );
+    }
+    const migrated = telegram.parameters?.migrate_to_chat_id;
+    if (
+      attempt === 0 &&
+      telegram.ok === false &&
+      response.status === 400 &&
+      telegram.error_code === 400 &&
+      typeof migrated === 'number' &&
+      Number.isSafeInteger(migrated) &&
+      migrated < 0 &&
+      String(migrated) !== targetChatId
+    ) {
+      // Admin-only configuration diagnostic, never returned to visitors.
+      console.warn('telegram_chat_migrated', {
+        eventId: input.eventId,
+        newChatId: String(migrated),
+      });
+      targetChatId = String(migrated);
+      continue;
+    }
+    break;
+  }
+  if (!telegram) {
     row.status = 'unknown';
     throw new ApiError(
       502,
       'DELIVERY_UNKNOWN',
       'Chưa xác định kết quả tiếp nhận. Vui lòng lưu mã sự kiện để đối soát.',
-    );
-  }
-  if (!telegram || typeof telegram.ok !== 'boolean' || (telegram.ok === true && !response.ok)) {
-    row.status = 'unknown';
-    throw new ApiError(
-      502,
-      'DELIVERY_UNKNOWN',
-      'Phản hồi Telegram chưa xác định được kết quả. Vui lòng lưu mã sự kiện để đối soát.',
     );
   }
   const sent = response.ok && telegram.ok === true;
@@ -537,30 +568,26 @@ export async function dispatchEvent(
       'Telegram từ chối thông báo. Vui lòng liên hệ quản trị viên kiểm tra cấu hình bot.';
     if (providerCode === 401 || providerCode === 404) {
       reason = 'TOKEN_INVALID';
-      message =
-        'Telegram: token bot không hợp lệ hoặc đã bị thu hồi. Quản trị viên cần kiểm tra TELEGRAM_BOT_TOKEN trên Cloudflare rồi triển khai lại.';
+      message = 'Lỗi website.';
     } else if (telegram.parameters?.migrate_to_chat_id) {
       reason = 'CHAT_MIGRATED';
-      message =
-        'Telegram: nhóm đã đổi sang supergroup. Quản trị viên cần cập nhật TELEGRAM_CHAT_ID rồi triển khai lại.';
+      message = 'Lỗi website.';
     } else if (providerCode === 400 && description.includes('chat not found')) {
       reason = 'CHAT_NOT_FOUND';
-      message =
-        'Telegram: không tìm thấy chat nhận. Kiểm tra TELEGRAM_CHAT_ID; với chat cá nhân, mở bot và nhấn Start; với nhóm, thêm bot vào đúng nhóm.';
+      message = 'Lỗi website.';
     } else if (
       providerCode === 403 ||
       (providerCode === 400 && description.includes('not enough rights'))
     ) {
       reason = 'CHAT_FORBIDDEN';
-      message =
-        'Telegram: bot không có quyền gửi tin. Kiểm tra bot bị chặn, bị xóa khỏi nhóm hoặc chưa được cấp quyền đăng trong kênh.';
+      message = 'Lỗi website.';
     } else if (providerCode === 429) {
       reason = 'RATE_LIMITED';
       const seconds = telegram.parameters?.retry_after;
       message =
         Number.isInteger(seconds) && seconds! > 0 && seconds! <= 86400
-          ? `Telegram giới hạn gửi tin. Vui lòng thử lại sau ${seconds} giây.`
-          : 'Telegram giới hạn gửi tin. Vui lòng đợi một lúc rồi thử lại.';
+          ? `Lỗi website. Vui lòng thử lại sau ${seconds} giây.`
+          : 'Lỗi website. Vui lòng đợi một lúc rồi thử lại.';
     }
     // Never log provider descriptions, token URLs, chat IDs or visitor data.
     console.error('telegram_delivery_rejected', {
