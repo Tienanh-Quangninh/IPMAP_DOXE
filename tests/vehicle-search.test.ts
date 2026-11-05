@@ -5,6 +5,8 @@ import {
   defaultVehicleFilters,
   findDemoVehicles,
   brandsFor,
+  getVehicleSearchResults,
+  vehicleDifferences,
 } from '../shared/vehicle-search';
 import { validateVehicleSearch, ApiError } from '../shared/server';
 import { onRequest } from '../functions/api/vehicle-search';
@@ -97,6 +99,51 @@ test('search validates all filters, requires an area and cannot attach GPS witho
     { linkCode: 'a\nb' },
   ])
     assert.throws(() => validateVehicleSearch({ ...input(), ...patch }), ApiError);
+});
+
+test('unmatched searches show two existing same-kind alternatives and retain an honest match count', () => {
+  for (const kind of ['all', 'motorcycle', 'car'] as const) {
+    for (const brand of brandsFor(kind)) {
+      for (const price of [1, 3, 50, 200]) {
+        const filters = {
+          ...defaultVehicleFilters,
+          kind,
+          brand,
+          minPrice: price,
+          maxPrice: price,
+          radiusKm: 5,
+        };
+        const result = getVehicleSearchResults(filters);
+        const matches = findDemoVehicles(filters);
+        assert.equal(result.matchCount, matches.length);
+        assert.ok(result.items.length >= 1);
+        if (!matches.length) {
+          assert.equal(result.suggested, true);
+          assert.equal(result.items.length, 2);
+          for (const item of result.items) {
+            assert.ok(demoVehicles.some((v) => v.id === item.id));
+            assert.ok(kind === 'all' || item.kind === kind);
+            assert.ok(vehicleDifferences(item, filters).length > 0);
+          }
+        } else {
+          assert.equal(result.suggested, false);
+          assert.deepEqual(result.items, matches);
+        }
+      }
+    }
+  }
+  const budget = {
+    ...defaultVehicleFilters,
+    kind: 'motorcycle' as const,
+    brand: 'Honda',
+    minPrice: 1,
+    maxPrice: 3,
+  };
+  const fallback = getVehicleSearchResults(budget);
+  assert.ok(fallback.items.every((v) => v.brand === 'Honda'));
+  assert.ok(
+    fallback.items.every((v) => vehicleDifferences(v, budget).includes('Ngoài khoảng giá')),
+  );
 });
 
 test('search endpoint sends chosen filters, true GPS, link attribution and server audit once; ignores no client result counts', async (t) => {

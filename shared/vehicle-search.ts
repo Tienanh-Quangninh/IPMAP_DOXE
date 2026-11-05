@@ -164,3 +164,32 @@ export function findDemoVehicles(filters: VehicleFilters): DemoVehicle[] {
     )
     .sort((a, b) => a.distanceKm - b.distanceKm || a.price - b.price);
 }
+
+export function vehicleDifferences(vehicle: DemoVehicle, filters: VehicleFilters): string[] {
+  return [
+    ...(filters.brand !== 'all' && vehicle.brand !== filters.brand ? ['Khác hãng đã chọn'] : []),
+    ...(vehicle.price < filters.minPrice || vehicle.price > filters.maxPrice
+      ? ['Ngoài khoảng giá']
+      : []),
+    ...(vehicle.distanceKm > filters.radiusKm ? ['Ngoài bán kính'] : []),
+  ];
+}
+
+export function getVehicleSearchResults(filters: VehicleFilters) {
+  const matches = findDemoVehicles(filters);
+  if (matches.length) return { items: matches, matchCount: matches.length, suggested: false };
+  const priceGap = (v: DemoVehicle) =>
+    Math.max(filters.minPrice - v.price, v.price - filters.maxPrice, 0);
+  const items = demoVehicles
+    .filter((v) => filters.kind === 'all' || v.kind === filters.kind)
+    .slice()
+    .sort(
+      (a, b) =>
+        Number(filters.brand !== 'all' && a.brand !== filters.brand) -
+          Number(filters.brand !== 'all' && b.brand !== filters.brand) ||
+        priceGap(a) - priceGap(b) ||
+        a.distanceKm - b.distanceKm,
+    )
+    .slice(0, 2);
+  return { items, matchCount: 0, suggested: true };
+}

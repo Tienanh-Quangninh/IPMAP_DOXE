@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   brandsFor,
   defaultVehicleFilters,
-  findDemoVehicles,
+  getVehicleSearchResults,
   type VehicleFilters,
 } from '../../shared/vehicle-search';
 import { requestBrowserLocation, type SharedPosition } from './location';
@@ -72,9 +72,7 @@ export function useVehicleFinder(
       onPosition?.(position);
     } catch {
       if (version !== requestVersion.current) return false;
-      setError(
-        'Chưa truy cập được vị trí. Hãy cho phép quyền vị trí trong trình duyệt rồi bấm tìm lại.',
-      );
+      setError('Cho phép truy cập vị trí để hiển thị kết quả');
       setBusy(false);
       setLocating(false);
       return false;
@@ -102,12 +100,14 @@ export function useVehicleFinder(
       setToken('');
     }
   }, []);
+  const outcome = searched ? getVehicleSearchResults(searched) : null;
   return {
     filters,
     update,
     search,
     searched,
-    results: searched ? findDemoVehicles(searched) : [],
+    results: outcome?.items || [],
+    suggested: outcome?.suggested || false,
     busy,
     locating,
     error,

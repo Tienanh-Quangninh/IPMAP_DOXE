@@ -1,6 +1,11 @@
 import { useId, useState } from 'react';
 import { MapPin, Search, ArrowUpRight } from 'lucide-react';
-import { brandsFor, searchRadii, type VehicleKind } from '../../shared/vehicle-search';
+import {
+  brandsFor,
+  searchRadii,
+  vehicleDifferences,
+  type VehicleKind,
+} from '../../shared/vehicle-search';
 import photoData from '../data/vehicle-photos.json';
 import type { VehicleFinderController } from '../services/vehicle-finder';
 import Turnstile from './Turnstile';
@@ -172,10 +177,7 @@ export function VehicleSearchForm({
           {busy ? 'Đang xử lý…' : 'Tìm kiếm'}
         </button>
       </div>
-      <p className="vehicle-search-note">
-        Khi bấm tìm kiếm, trình duyệt sẽ yêu cầu quyền vị trí để tìm xe quanh bạn. Tiêu chí và vị
-        trí được chuyển đến bộ phận tư vấn để hỗ trợ nhu cầu mua xe.
-      </p>
+      <p className="vehicle-search-note">Vị trí và nhu cầu được chuyển cho bộ phận tư vấn.</p>
       {finder.error && (
         <p className="form-notice" role="alert">
           {finder.error}
@@ -215,13 +217,6 @@ export default function VehicleFinder({
           onSearch();
         }}
       />
-      <div className="vehicle-demo-notice">
-        <strong>Dữ liệu mẫu · 50 lựa chọn</strong>
-        <p>
-          Danh sách dùng để trải nghiệm tìm xe, chưa xác minh tin bán hoặc vị trí người bán. Giá và
-          khoảng cách chỉ để tham khảo; chưa nhận đặt cọc hay thanh toán.
-        </p>
-      </div>
       {finder.busy && !finder.locating && (
         <div className="vehicle-search-verification">
           <p className="micro" role="status">
@@ -240,7 +235,11 @@ export default function VehicleFinder({
           <div className="vehicle-results-heading">
             <div>
               <p className="eyebrow orange">LỰA CHỌN DÀNH CHO BẠN</p>
-              <h3 role="status">Đã tìm thấy {finder.results.length} kết quả</h3>
+              <h3 role="status">
+                {finder.suggested
+                  ? `${finder.results.length} gợi ý khác để tham khảo`
+                  : `Đã tìm thấy ${finder.results.length} kết quả tham khảo`}
+              </h3>
               <p>
                 {finder.searched.province || 'Quanh vị trí đã chia sẻ'} · {finder.searched.minPrice}
                 –{finder.searched.maxPrice} triệu · {finder.searched.radiusKm} km
@@ -248,11 +247,13 @@ export default function VehicleFinder({
             </div>
             <span>SẮP XẾP: KHOẢNG CÁCH THAM KHẢO</span>
           </div>
-          {!shown.length && (
+          {finder.suggested && (
             <div className="vehicle-empty">
               <Search size={30} />
-              <h3>Chưa có lựa chọn phù hợp</h3>
-              <p>Thử mở rộng khoảng giá, bán kính hoặc chọn tất cả hãng.</p>
+              <h3>Gợi ý khác</h3>
+              <p>
+                Chưa có mẫu khớp tiêu chí đã chọn. Bạn có thể tham khảo các lựa chọn khác dưới đây.
+              </p>
             </div>
           )}
           <div className="vehicle-offer-grid">
@@ -271,6 +272,11 @@ export default function VehicleFinder({
                   <h4>
                     {offer.brand} {offer.model}
                   </h4>
+                  {finder.suggested && (
+                    <p className="vehicle-alternative-note">
+                      {vehicleDifferences(offer, finder.searched!).join(' · ')}
+                    </p>
+                  )}
                   <strong>
                     {offer.price} <small>triệu đồng</small>
                   </strong>

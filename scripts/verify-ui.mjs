@@ -327,7 +327,9 @@ try {
     await shopping.page.evaluate((allow) => window.__finishLocation(allow), allow);
   }
   await searchWithGps(finder, false);
-  await expect(finder.getByRole('alert')).toContainText('Chưa truy cập được vị trí');
+  await expect(finder.getByRole('alert')).toContainText(
+    'Cho phép truy cập vị trí để hiển thị kết quả',
+  );
   await expect(finder.locator('.vehicle-offer')).toHaveCount(0);
   assert.equal(shopping.events.filter((e) => e.path.endsWith('vehicle-search')).length, 0);
 
@@ -366,8 +368,11 @@ try {
   await finder.getByLabel('Giá từ').selectOption('1');
   await finder.getByLabel('Giá đến').selectOption('3');
   await searchWithGps(finder);
-  await expect(finder.getByText('Đã tìm thấy 0 kết quả')).toBeVisible();
-  await expect(finder.locator('.vehicle-offer')).toHaveCount(0);
+  await expect(finder.getByText('2 gợi ý khác để tham khảo')).toBeVisible();
+  await expect(finder.locator('.vehicle-offer')).toHaveCount(2);
+  await expect(finder.locator('.vehicle-alternative-note').first()).toContainText(
+    'Ngoài khoảng giá',
+  );
   await expect(finder.getByRole('button', { name: 'Tìm kiếm', exact: true })).toBeEnabled();
   await finder.getByLabel('Giá từ').selectOption('5');
   await finder.getByRole('button', { name: 'Tìm kiếm', exact: true }).click();
@@ -382,7 +387,7 @@ try {
   await heroSearch.getByLabel('Giá đến').selectOption('200');
   await searchWithGps(heroSearch);
   await expect(finder).toBeVisible();
-  await expect(finder.getByText('Đã tìm thấy 50 kết quả')).toBeVisible();
+  await expect(finder.getByText('Đã tìm thấy 50 kết quả tham khảo')).toBeVisible();
   await expect(finder.locator('.vehicle-offer')).toHaveCount(12);
   await finder.getByRole('button', { name: 'Xem thêm 12 lựa chọn', exact: true }).click();
   await expect(finder.locator('.vehicle-offer')).toHaveCount(24);
