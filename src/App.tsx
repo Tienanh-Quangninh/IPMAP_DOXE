@@ -20,6 +20,8 @@ import {
   Instagram,
   Facebook,
 } from 'lucide-react';
+import VehicleFinder, { VehicleSearchForm } from './components/VehicleFinder';
+import { useVehicleFinder } from './services/vehicle-finder';
 import BranchSelector from './components/BranchSelector';
 import ApplicationForm from './components/ApplicationForm';
 import LocationNotifier, { type LocationEvent } from './components/LocationNotifier';
@@ -85,6 +87,9 @@ export default function App() {
   );
   const manualRegionVersion = useRef(0);
   const [sharedPosition, setSharedPosition] = useState<SharedPosition | null>(null);
+  const [searchOpen, setSearchOpen] = useState(false);
+  const afterRecruitmentShown = useRef(false);
+  const finder = useVehicleFinder(selection.province, sharedPosition, setSharedPosition);
   const [locationResolved, setLocationResolved] = useState(false);
   const [locationEvent, setLocationEvent] = useState<LocationEvent | null>(null);
   const [vehicle, setVehicle] = useState('all'),
@@ -99,7 +104,13 @@ export default function App() {
     [privacy, setPrivacy] = useState(false);
   const branch = branches.find((b) => b.id === selection.branchId) || null;
   const closeLocation = useCallback(() => setLocationOpen(false), []),
-    closeForm = useCallback(() => setFormOpen(false), []),
+    closeForm = useCallback(() => {
+      setFormOpen(false);
+      if (!afterRecruitmentShown.current) {
+        afterRecruitmentShown.current = true;
+        setSearchOpen(true);
+      }
+    }, []),
     closeProduct = useCallback(() => setProduct(null), []),
     closeBuild = useCallback(() => setBuild(null), []),
     markRecruitmentShown = useCallback(() => {
@@ -108,6 +119,14 @@ export default function App() {
       } catch {}
     }, []),
     closePrivacy = useCallback(() => setPrivacy(false), []);
+  const closeSearch = useCallback(() => {
+    setSearchOpen(false);
+    finder.cancelWaiting();
+  }, [finder.cancelWaiting]);
+  function searchVehicles() {
+    setSearchOpen(true);
+    void finder.search();
+  }
   useEffect(() => {
     let active = true;
     const version = manualRegionVersion.current;
@@ -216,6 +235,8 @@ export default function App() {
     } catch {}
   }
   function openApply(j: Job | null = null) {
+    setSearchOpen(false);
+    finder.cancelWaiting();
     setJob(j);
     setFormOpen(true);
     markRecruitmentShown();
@@ -308,7 +329,7 @@ export default function App() {
         </div>
       )}
       <main id="main">
-        <section className="hero">
+        <section className="hero vehicle-search-hero">
           <picture>
             <source media="(max-width: 640px)" srcSet="/images/garage-hero-mobile.webp" />
             <img
@@ -338,16 +359,12 @@ export default function App() {
               <br />
               Đó là cá tính, đam mê và dấu ấn của bạn.
             </p>
-            <div className="hero-cta">
-              <a className="button" href="#services">
-                Khám phá dịch vụ
-                <ArrowUpRight size={18} />
-              </a>
-              <a className="button button-ghost" href="#parts">
-                Tìm phụ tùng
-                <ArrowRight size={17} />
-              </a>
-            </div>
+            <VehicleSearchForm
+              finder={finder}
+              compact
+              hasPosition={!!sharedPosition}
+              onSearch={searchVehicles}
+            />
             <div className="hero-tags">
               <span>
                 <Check size={13} /> XE MÁY & Ô TÔ
@@ -1034,6 +1051,11 @@ export default function App() {
           initialProvince={selection.province}
           onClose={closeForm}
         />
+      )}
+      {searchOpen && !formOpen && (
+        <Modal title="Tìm xe gần bạn" onClose={closeSearch} wide>
+          <VehicleFinder finder={finder} hasPosition={!!sharedPosition} onSearch={searchVehicles} />
+        </Modal>
       )}
       {product && (
         <Modal title="Chi tiết phụ tùng" onClose={closeProduct}>

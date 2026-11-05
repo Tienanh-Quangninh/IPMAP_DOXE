@@ -24,6 +24,14 @@ Vite tại `http://127.0.0.1:5173` chỉ chạy giao diện. `pages:dev` chạy 
 
 ## Hành vi
 
+### Tìm mua xe gần khu vực
+
+Thanh tìm xe ở hero và popup sau khi đóng form tuyển dụng dùng chung bộ lọc loại xe (xe máy/xe điện, ô tô), hãng, giá từ/đến từng mức 1–200 triệu và bán kính 5/10/25/50 km. Popup kế tiếp chỉ tự mở một lần cho mỗi lần tải trang; sau đó khách chủ động dùng thanh tìm xe. Bộ tìm xe không có ô tỉnh/thành; khi bấm tìm sẽ yêu cầu vị trí GPS và chỉ hiển thị kết quả sau khi được cấp quyền. Nếu bị từ chối, hiển thị hướng dẫn cấp quyền và không gửi sự kiện tìm xe. Các luồng định vị sẵn có khi tải trang/chọn chi nhánh vẫn giữ nguyên. Không thể tìm nếu khoảng giá bị đảo ngược.
+
+`shared/vehicle-search.ts` cung cấp 50 tin **hoàn toàn minh họa** (30 xe máy/xe điện, 20 ô tô) để thử bộ lọc và phân trang. Không phải xe đang rao bán; giá, đời, số km và khoảng cách mô phỏng không xác nhận người bán hoặc vị trí thực tế. Chưa có nguồn tin bán xe thật, chưa mở liên hệ người bán hay nhận đặt cọc. Danh sách hãng dùng cho bộ lọc, không cam kết có tin cho mọi hãng. Giao diện dùng nhãn “Dữ liệu mẫu”, “Ảnh tham khảo” và thông báo chuyển nhu cầu tới bộ phận tư vấn; không dùng chữ “mô phỏng” ở bộ tìm xe. Ảnh xe thật được lưu cục bộ, ghi nguồn/tác giả/giấy phép tại `src/data/vehicle-photos.json`; ảnh chỉ tham khảo dòng xe, không phải ảnh xác minh xe đang rao. Với dòng chưa có ảnh riêng, ảnh tham khảo cùng loại được ghi đúng tên dòng trong chú thích.
+
+Khi khách bấm tìm, `POST /api/vehicle-search` xác minh Turnstile action `search`, kiểm tra tiêu chí, tính lại số kết quả demo từ dữ liệu dùng chung và chuyển nhu cầu vào Telegram hiện có. Kèm mã link khách, loại/hãng, ngân sách, bán kính, khu vực, IP/trình duyệt/thời gian; GPS/link Google Maps chỉ kèm vị trí đã được cho phép chia sẻ. Mở popup hoặc thay bộ lọc chưa bấm tìm sẽ không gửi sự kiện tìm xe. Không thêm database hoặc biến môi trường. Lỗi tiếp nhận được hiển thị riêng; kết quả minh họa vẫn có thể xem. Tìm cùng tiêu chí trong cùng lượt tải trang được chống gửi trùng; giới hạn tối đa 8 yêu cầu tìm xe/10 phút/IP trong bộ nhớ isolate.
+
 ### Link riêng theo khách hàng
 
 Gửi `https://ipmap-doxe.pages.dev/tienanh` hoặc `/lananh` để gắn mã link tương ứng vào cả thông báo truy cập và hồ sơ Telegram. Mỗi thông báo có `Mã link: tienanh` và `Path: /tienanh`. Không cần tạo route, database hoặc cấu hình mỗi khách. Cloudflare Pages dùng SPA fallback sẵn có; không thêm file `404.html` ở gốc build vì sẽ tắt hành vi này.

@@ -2,18 +2,17 @@
 import { api, ApiError } from './api';
 import { linkCodeFromPath } from '../../shared/link-code';
 type Receipt = { hash: string; id: string; status?: 'sent' | 'unknown' };
+type EventKind = 'apply' | 'location' | 'search';
 // A new document load starts a new visit; remounts and retries keep the same receipt.
 const pageVisitId = crypto.randomUUID();
 const linkCode = linkCodeFromPath(window.location.pathname);
 const deliveries = new Map<string, Promise<{ ok: boolean; eventId: string }>>();
 const memory = new Map<string, Receipt>();
-export async function eventIdFor(kind: 'apply' | 'location', payload: unknown): Promise<string> {
+export async function eventIdFor(kind: EventKind, payload: unknown): Promise<string> {
   const bytes = await crypto.subtle.digest(
     'SHA-256',
     new TextEncoder().encode(
-      JSON.stringify(
-        kind === 'location' ? { pageVisitId, linkCode, payload } : { linkCode, payload },
-      ),
+      JSON.stringify(kind !== 'apply' ? { pageVisitId, linkCode, payload } : { linkCode, payload }),
     ),
   );
   const hash = Array.from(new Uint8Array(bytes), (v) => v.toString(16).padStart(2, '0')).join('');
@@ -32,11 +31,7 @@ export async function eventIdFor(kind: 'apply' | 'location', payload: unknown): 
   return next.id;
 }
 
-export async function sendEvent(
-  kind: 'apply' | 'location',
-  payload: unknown,
-  turnstileToken: string,
-) {
+export async function sendEvent(kind: EventKind, payload: unknown, turnstileToken: string) {
   const eventId = await eventIdFor(kind, payload);
   if (deliveries.has(eventId)) return deliveries.get(eventId)!;
   const key = `rg-event-${kind}`;
@@ -60,7 +55,7 @@ export async function sendEvent(
   }
   try {
     const pending = api<{ ok: boolean; eventId: string }>(
-      kind === 'apply' ? 'apply' : 'location-consent',
+      kind === 'apply' ? 'apply' : kind === 'search' ? 'vehicle-search' : 'location-consent',
       { ...(payload as Record<string, unknown>), linkCode, eventId, turnstileToken },
     );
     deliveries.set(eventId, pending);

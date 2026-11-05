@@ -30,7 +30,7 @@ export default function Turnstile({
   onToken,
   resetKey = 0,
 }: {
-  action: 'location' | 'apply';
+  action: 'location' | 'apply' | 'search';
   onToken: (token: string) => void;
   resetKey?: number;
 }) {

@@ -3,6 +3,7 @@ import branchesData from '../src/data/branches.json';
 import jobsData from '../src/data/jobs.json';
 import provincesData from '../src/data/provinces.json';
 import { isLinkCode } from './link-code';
+import { brandsFor, searchRadii, type VehicleKind, type VehicleFilters } from './vehicle-search';
 
 export const branches = (branchesData as Branch[]).filter((b) => b.active && b.verified);
 export const jobs = jobsData as Job[];
@@ -10,7 +11,7 @@ export const provinces = provincesData as Province[];
 const MAX_BODY = 16_384;
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 type Body = Record<string, unknown>;
-type Kind = 'LOCATION_CONSENT' | 'JOB_APPLICATION';
+type Kind = 'LOCATION_CONSENT' | 'JOB_APPLICATION' | 'VEHICLE_SEARCH';
 type EventRow = {
   status: 'pending' | 'sent' | 'failed' | 'unknown';
   requester_hash: string;
@@ -123,7 +124,7 @@ function text(body: Body, key: string, min: number, max: number): string {
   return value.trim();
 }
 
-function common(body: Body, action: 'location' | 'application' = 'location') {
+function common(body: Body, action: 'location' | 'application' | 'search' = 'location') {
   const eventId = text(body, 'eventId', 36, 36);
   if (!UUID.test(eventId)) throw new ApiError(400, 'VALIDATION_ERROR', 'Mã sự kiện không hợp lệ.');
   const linkCode = body.linkCode == null ? null : body.linkCode;
@@ -345,6 +346,67 @@ export function validateApplication(
   };
 }
 
+export function validateVehicleSearch(body: Body) {
+  const allowed = new Set([
+    'eventId',
+    'linkCode',
+    'turnstileToken',
+    'kind',
+    'brand',
+    'minPrice',
+    'maxPrice',
+    'radiusKm',
+    'province',
+    'position',
+    'locationShared',
+    'submitted',
+  ]);
+  if (Object.keys(body).some((key) => !allowed.has(key)))
+    throw new ApiError(400, 'VALIDATION_ERROR', 'Tiêu chí tìm xe có trường không hợp lệ.');
+  const base = common(body, 'search');
+  if (!['all', 'motorcycle', 'car'].includes(String(body.kind)))
+    throw new ApiError(400, 'VALIDATION_ERROR', 'Loại xe không hợp lệ.');
+  const kind = body.kind as VehicleKind;
+  const brand = text(body, 'brand', 1, 40);
+  if (brand !== 'all' && !brandsFor(kind).includes(brand))
+    throw new ApiError(400, 'VALIDATION_ERROR', 'Hãng xe không khớp loại xe.');
+  const { minPrice, maxPrice, radiusKm } = body;
+  if (
+    typeof minPrice !== 'number' ||
+    !Number.isInteger(minPrice) ||
+    minPrice < 1 ||
+    typeof maxPrice !== 'number' ||
+    !Number.isInteger(maxPrice) ||
+    maxPrice > 200 ||
+    minPrice > maxPrice
+  )
+    throw new ApiError(400, 'VALIDATION_ERROR', 'Khoảng giá phải từ 1 đến 200 triệu.');
+  if (typeof radiusKm !== 'number' || !searchRadii.includes(radiusKm))
+    throw new ApiError(400, 'VALIDATION_ERROR', 'Bán kính tìm xe không hợp lệ.');
+  const position = readPosition(body.position);
+  if (typeof body.locationShared !== 'boolean' || body.locationShared !== !!position)
+    throw new ApiError(
+      400,
+      'LOCATION_PERMISSION_REQUIRED',
+      'Chỉ gửi vị trí đã được cho phép chia sẻ.',
+    );
+  const province =
+    body.province == null || body.province === ''
+      ? null
+      : normalizeProvince(text(body, 'province', 1, 80));
+  if ((body.province && !province) || (!position && !province))
+    throw new ApiError(400, 'VALIDATION_ERROR', 'Chọn tỉnh/thành hoặc chia sẻ vị trí để tìm xe.');
+  const filters: VehicleFilters = {
+    kind,
+    brand,
+    minPrice,
+    maxPrice,
+    radiusKm,
+    province: province || '',
+  };
+  return { ...base, filters, position };
+}
+
 function configured(env: Env): asserts env is Env & {
   TELEGRAM_BOT_TOKEN: string;
   TELEGRAM_CHAT_ID: string;
@@ -452,7 +514,9 @@ export async function dispatchEvent(
   }
   const rateKey = `${actor}:${Math.floor(now / 600000)}`;
   const rate = rateCache.get(rateKey) || { count: 0, expiresAt: now + 600000 };
-  if (rate.count >= (input.kind === 'JOB_APPLICATION' ? 3 : 5))
+  if (
+    rate.count >= (input.kind === 'JOB_APPLICATION' ? 3 : input.kind === 'VEHICLE_SEARCH' ? 8 : 5)
+  )
     throw new ApiError(429, 'RATE_LIMITED', 'Bạn gửi quá nhiều lần. Vui lòng thử lại sau 10 phút.');
   if (
     (!old && eventCache.size >= MAX_ENTRIES) ||
@@ -474,7 +538,11 @@ export async function dispatchEvent(
       request,
       env.TURNSTILE_SECRET_KEY,
       input.turnstileToken,
-      input.kind === 'LOCATION_CONSENT' ? 'location' : 'apply',
+      input.kind === 'LOCATION_CONSENT'
+        ? 'location'
+        : input.kind === 'VEHICLE_SEARCH'
+          ? 'search'
+          : 'apply',
     );
   } catch (error) {
     row.status = 'failed';

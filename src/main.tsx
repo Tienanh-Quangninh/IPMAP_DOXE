@@ -9,6 +9,7 @@ import '@fontsource/be-vietnam-pro/900.css';
 import '@fontsource/be-vietnam-pro/900-italic.css';
 import App from './App';
 import './styles.css';
+import './vehicle-search.css';
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>

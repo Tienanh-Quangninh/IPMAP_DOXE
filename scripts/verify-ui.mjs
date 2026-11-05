@@ -139,6 +139,8 @@ try {
   await denied.page.getByLabel('Vị trí ứng tuyển').selectOption('vehicle-technician');
   await expect(denied.page.getByLabel('Vị trí ứng tuyển')).toHaveValue('vehicle-technician');
   await denied.page.keyboard.press('Escape');
+  await expect(denied.page.getByRole('dialog', { name: 'Tìm xe gần bạn' })).toBeVisible();
+  await denied.page.keyboard.press('Escape');
   await denied.page.waitForTimeout(500);
   await expect(denied.page.getByRole('dialog')).toHaveCount(0);
   await denied.page.evaluate(() => document.fonts.ready);
@@ -300,6 +302,109 @@ try {
   await Promise.all([customerA.context.close(), customerB.context.close()]);
   console.log(
     'Concurrent customer links keep separate labels; root clears attribution; query does not alter label.',
+  );
+  const shopping = await setup(false, 'Ninh Bình', '/khach-mua-xe');
+  await shopping.page.evaluate(() => window.__finishLocation(false));
+  await expect(shopping.page.getByRole('dialog', { name: 'Thông tin ứng tuyển' })).toBeVisible();
+  await shopping.page
+    .getByRole('dialog', { name: 'Thông tin ứng tuyển' })
+    .getByRole('button', { name: 'Đóng hộp thoại' })
+    .click();
+  const finder = shopping.page.getByRole('dialog', { name: 'Tìm xe gần bạn' });
+  await expect(finder).toBeVisible();
+  assert.equal(await finder.getByText(/Telegram/).count(), 0);
+  assert.equal(
+    shopping.events.filter((e) => e.path.endsWith('vehicle-search')).length,
+    0,
+    'Opening a search popup is not a submitted search',
+  );
+  await expect(finder.getByLabel('Tỉnh / thành')).toHaveCount(0);
+  await expect(finder.getByLabel('Giá từ').locator('option')).toHaveCount(200);
+  async function searchWithGps(form, allow = true) {
+    const before = await shopping.page.evaluate(() => window.__gpsRequests);
+    await form.getByRole('button', { name: 'Tìm kiếm', exact: true }).click();
+    await shopping.page.waitForFunction((before) => window.__gpsRequests > before, before);
+    await shopping.page.evaluate((allow) => window.__finishLocation(allow), allow);
+  }
+  await searchWithGps(finder, false);
+  await expect(finder.getByRole('alert')).toContainText('Chưa truy cập được vị trí');
+  await expect(finder.locator('.vehicle-offer')).toHaveCount(0);
+  assert.equal(shopping.events.filter((e) => e.path.endsWith('vehicle-search')).length, 0);
+
+  await finder.getByLabel('Loại xe').selectOption('car');
+  await finder.getByLabel('Hãng xe').selectOption('Toyota');
+  await finder.getByLabel('Giá từ').selectOption('100');
+  await finder.getByLabel('Giá đến').selectOption('200');
+  await searchWithGps(finder);
+  await expect(
+    finder.getByRole('status').filter({ hasText: 'Đã tìm thấy 2 kết quả' }),
+  ).toBeVisible();
+  await expect
+    .poll(() => shopping.events.filter((e) => e.path.endsWith('vehicle-search')).length)
+    .toBe(1);
+  await expect(finder.getByRole('button', { name: 'Tìm kiếm', exact: true })).toBeEnabled();
+  const searchEvent = shopping.events.find((e) => e.path.endsWith('vehicle-search')).payload;
+  assert.equal(searchEvent.linkCode, 'khach-mua-xe');
+  assert.equal(searchEvent.kind, 'car');
+  assert.equal(searchEvent.brand, 'Toyota');
+  assert.equal(searchEvent.minPrice, 100);
+  assert.equal(searchEvent.maxPrice, 200);
+  assert.equal(searchEvent.province, 'Ninh Bình');
+  assert.deepEqual(searchEvent.position, {
+    latitude: 21.1234567,
+    longitude: 107.7654321,
+    accuracy: 8.5,
+  });
+  assert.equal(searchEvent.locationShared, true);
+  await expect(finder.locator('.vehicle-offer')).toHaveCount(2);
+  await expect(finder.locator('.vehicle-photo img')).toHaveCount(2);
+  assert.doesNotMatch(await finder.innerText(), /mô phỏng/i);
+
+  await finder.getByLabel('Loại xe').selectOption('motorcycle');
+  await expect(finder.getByLabel('Hãng xe')).toHaveValue('all');
+  await finder.getByLabel('Hãng xe').selectOption('Honda');
+  await finder.getByLabel('Giá từ').selectOption('1');
+  await finder.getByLabel('Giá đến').selectOption('3');
+  await searchWithGps(finder);
+  await expect(finder.getByText('Đã tìm thấy 0 kết quả')).toBeVisible();
+  await expect(finder.locator('.vehicle-offer')).toHaveCount(0);
+  await expect(finder.getByRole('button', { name: 'Tìm kiếm', exact: true })).toBeEnabled();
+  await finder.getByLabel('Giá từ').selectOption('5');
+  await finder.getByRole('button', { name: 'Tìm kiếm', exact: true }).click();
+  await expect(finder.getByRole('alert')).toContainText('Giá từ phải nhỏ hơn');
+  assert.equal(shopping.events.filter((e) => e.path.endsWith('vehicle-search')).length, 2);
+  await shopping.page.keyboard.press('Escape');
+  const heroSearch = shopping.page.getByRole('form', { name: 'Tìm xe đầu trang' });
+  await expect(heroSearch.getByLabel('Hãng xe')).toHaveValue('Honda');
+  await heroSearch.getByLabel('Loại xe').selectOption('all');
+  await heroSearch.getByLabel('Hãng xe').selectOption('all');
+  await heroSearch.getByLabel('Giá từ').selectOption('1');
+  await heroSearch.getByLabel('Giá đến').selectOption('200');
+  await searchWithGps(heroSearch);
+  await expect(finder).toBeVisible();
+  await expect(finder.getByText('Đã tìm thấy 50 kết quả')).toBeVisible();
+  await expect(finder.locator('.vehicle-offer')).toHaveCount(12);
+  await finder.getByRole('button', { name: 'Xem thêm 12 lựa chọn', exact: true }).click();
+  await expect(finder.locator('.vehicle-offer')).toHaveCount(24);
+  for (const width of [360, 390, 768, 1440]) {
+    await shopping.page.setViewportSize({ width, height: 844 });
+    assert.equal(
+      await shopping.page.evaluate(() => document.documentElement.scrollWidth > innerWidth),
+      false,
+      `Finder overflow at ${width}`,
+    );
+    await finder.evaluate((el) => {
+      el.scrollTop = 0;
+    });
+    await shopping.page.screenshot({ path: `artifacts/vehicle-finder-${width}.png` });
+  }
+  await shopping.page.keyboard.press('Escape');
+  await shopping.page.setViewportSize({ width: 390, height: 844 });
+  await shopping.page.evaluate(() => scrollTo(0, 0));
+  await shopping.page.screenshot({ path: 'artifacts/vehicle-hero-mobile.png', fullPage: false });
+  await shopping.context.close();
+  console.log(
+    'Vehicle search checks passed: sequential popup, 200 price options, shared hero filters, car/brand/budget, GPS request after search and permission denial without results, zero state, validation, 50 demo results and pagination, responsive screens.',
   );
   assert.deepEqual(errors, []);
   await granted.context.close();

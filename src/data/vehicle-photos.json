@@ -1,0 +1,110 @@
+{
+  "Honda Vision": {
+    "image": "/images/vehicle-search/demo-002.jpg",
+    "source": "https://commons.wikimedia.org/wiki/File:Honda_Vision.jpg",
+    "author": "Miguel Borges",
+    "license": "CC BY 2.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by/2.0",
+    "title": "File:Honda Vision.jpg",
+    "bytes": 150796
+  },
+  "Honda SH Mode": {
+    "image": "/images/vehicle-search/demo-004.jpg",
+    "source": "https://commons.wikimedia.org/wiki/File:Honda-sh-mode-125-2014-viet-nam.jpg",
+    "author": "Blemo25",
+    "license": "CC BY-SA 4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+    "title": "File:Honda-sh-mode-125-2014-viet-nam.jpg",
+    "bytes": 52221
+  },
+  "Yamaha Exciter": {
+    "image": "/images/vehicle-search/demo-012.jpg",
+    "source": "https://commons.wikimedia.org/wiki/File:YamahaSniper_Habalhabal.jpg",
+    "author": "en:User:Habalhabal",
+    "license": "Public domain",
+    "licenseUrl": "https://commons.wikimedia.org/wiki/Commons:Licensing",
+    "title": "File:YamahaSniper Habalhabal.jpg",
+    "bytes": 66863
+  },
+  "Yamaha Grande": {
+    "image": "/images/vehicle-search/demo-014.jpg",
+    "source": "https://commons.wikimedia.org/wiki/File:Yamaha_Grande_2025.jpg",
+    "author": "Nguyenthihoatt2022",
+    "license": "CC BY-SA 4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+    "title": "File:Yamaha Grande 2025.jpg",
+    "bytes": 147723
+  },
+  "Yamaha NVX": {
+    "image": "/images/vehicle-search/demo-015.jpg",
+    "source": "https://commons.wikimedia.org/wiki/File:Motorroller_Aerox.jpg",
+    "author": "Ion at German Wikipedia",
+    "license": "CC BY-SA 3.0",
+    "licenseUrl": "http://creativecommons.org/licenses/by-sa/3.0/",
+    "title": "File:Motorroller Aerox.jpg",
+    "bytes": 110897
+  },
+  "Suzuki Satria": {
+    "image": "/images/vehicle-search/demo-017.jpg",
+    "source": "https://commons.wikimedia.org/wiki/File:Alphinight_SUZUKI_SATRIA_120RU_1.jpg",
+    "author": "Alphinight",
+    "license": "Public domain",
+    "licenseUrl": "https://commons.wikimedia.org/wiki/Commons:Licensing",
+    "title": "File:Alphinight SUZUKI SATRIA 120RU 1.jpg",
+    "bytes": 272229
+  },
+  "Piaggio Liberty": {
+    "image": "/images/vehicle-search/demo-021.jpg",
+    "source": "https://commons.wikimedia.org/wiki/File:Piaggio_Liberty_05.jpg",
+    "author": "Adrià García",
+    "license": "CC BY-SA 2.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/2.0",
+    "title": "File:Piaggio Liberty 05.jpg",
+    "bytes": 409789
+  },
+  "Kawasaki Ninja 300": {
+    "image": "/images/vehicle-search/demo-024.jpg",
+    "source": "https://commons.wikimedia.org/wiki/File:KawasakiNinja300.jpg",
+    "author": "Rafael Carvalho de Almeida",
+    "license": "Public domain",
+    "licenseUrl": "https://commons.wikimedia.org/wiki/Commons:Licensing",
+    "title": "File:KawasakiNinja300.jpg",
+    "bytes": 94910
+  },
+  "Toyota Corolla": {
+    "image": "/images/vehicle-search/demo-032.jpg",
+    "source": "https://commons.wikimedia.org/wiki/File:Toyota_Allex_rear.jpg",
+    "author": "Tennen-Gas",
+    "license": "CC BY-SA 3.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0",
+    "title": "File:Toyota Allex rear.jpg",
+    "bytes": 95780
+  },
+  "Ford Laser": {
+    "image": "/images/vehicle-search/demo-039.jpg",
+    "source": "https://commons.wikimedia.org/wiki/File:1999_Ford_Laser_Lidea_rear.jpg",
+    "author": "Aita45",
+    "license": "CC BY 4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by/4.0",
+    "title": "File:1999 Ford Laser Lidea rear.jpg",
+    "bytes": 398400
+  },
+  "Nissan Sunny": {
+    "image": "/images/vehicle-search/demo-046.jpg",
+    "source": "https://commons.wikimedia.org/wiki/File:Nissan_Sunny_1998.JPG",
+    "author": "Kuha455405",
+    "license": "CC BY-SA 3.0",
+    "licenseUrl": "http://creativecommons.org/licenses/by-sa/3.0/",
+    "title": "File:Nissan Sunny 1998.JPG",
+    "bytes": 73118
+  },
+  "Toyota Vios": {
+    "image": "/images/vehicle-search/demo-031.jpg",
+    "source": "https://commons.wikimedia.org/wiki/File:2007_Toyota_Vios_1.jpg",
+    "author": "Love Krittaya",
+    "license": "Public domain",
+    "licenseUrl": "https://commons.wikimedia.org/wiki/File:2007_Toyota_Vios_1.jpg",
+    "title": "File:2007 Toyota Vios 1.jpg",
+    "bytes": 224884
+  }
+}
